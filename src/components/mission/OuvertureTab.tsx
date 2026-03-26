@@ -141,7 +141,6 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
   };
 
   const handleGenerateMissionDoc = () => {
-    const jsPDF = (window as any).jspdf?.jsPDF;
     import("jspdf").then(({ default: jsPDF }) => {
       const doc = new jsPDF();
       const navy = "#1B2A4A";
