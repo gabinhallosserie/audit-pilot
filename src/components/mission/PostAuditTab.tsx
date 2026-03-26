@@ -195,6 +195,31 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
     toast.success("Notation enregistrée");
   };
 
+  const exportCSV = () => {
+    const headers = ["Constat associé", "Type", "Clause", "Responsable", "Date limite", "Preuve attendue", "Statut"];
+    const rows = actions.map((a) => {
+      const f = findings.find((fi) => fi.id === a.finding_id);
+      return [
+        f?.description || "",
+        f ? FINDING_LABELS[f.type as FindingType] || f.type : "",
+        f?.clause || "",
+        a.responsible,
+        a.deadline ? new Date(a.deadline).toLocaleDateString("fr-FR") : "",
+        a.expected_evidence || "",
+        ACTION_STATUS_CONFIG[a.status]?.label || a.status,
+      ];
+    });
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `actions_correctives_${missionId}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Export CSV téléchargé");
+  };
+
   const bothRated = ratings.length === 2;
   const otherRating = ratings.find((r) => r.rater_role !== user?.role);
   const myRatingData = ratings.find((r) => r.rater_role === user?.role);
