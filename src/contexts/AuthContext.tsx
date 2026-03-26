@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
-export type UserRole = "audite" | "auditeur";
+export type UserRole = "audite" | "auditeur" | "admin";
 
 export interface User {
   email: string;
@@ -24,6 +24,13 @@ const USERS: Record<string, User> = {
     role: "auditeur",
     company: "Consultant ISO indépendant",
     avatar: "JM",
+  },
+  "admin@audit.io": {
+    email: "admin@audit.io",
+    name: "Administrateur",
+    role: "admin",
+    company: "AUDIT.IO",
+    avatar: "AD",
   },
 };
 
