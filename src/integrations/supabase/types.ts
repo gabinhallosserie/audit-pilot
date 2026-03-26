@@ -123,6 +123,54 @@ export type Database = {
           },
         ]
       }
+      corrective_actions: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          expected_evidence: string | null
+          finding_id: string
+          id: string
+          mission_id: string
+          responsible: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          expected_evidence?: string | null
+          finding_id: string
+          id: string
+          mission_id: string
+          responsible?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          expected_evidence?: string | null
+          finding_id?: string
+          id?: string
+          mission_id?: string
+          responsible?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrective_actions_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrective_actions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       findings: {
         Row: {
           clause: string | null
@@ -207,6 +255,47 @@ export type Database = {
             columns: ["audit_id"]
             isOneToOne: false
             referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          mission_id: string | null
+          read: boolean
+          target_role: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          mission_id?: string | null
+          read?: boolean
+          target_role: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          mission_id?: string | null
+          read?: boolean
+          target_role?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
             referencedColumns: ["id"]
           },
         ]
@@ -306,6 +395,41 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "audit_plan_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          mission_id: string
+          rater_role: string
+          score: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          mission_id: string
+          rater_role: string
+          score: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          mission_id?: string
+          rater_role?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
             referencedColumns: ["id"]
           },
         ]
