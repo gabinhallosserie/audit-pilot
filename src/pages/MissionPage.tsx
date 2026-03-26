@@ -72,6 +72,8 @@ const MissionPage: React.FC = () => {
   const [checklist, setChecklist] = useState<ChecklistData[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const chatOpenRef = React.useRef(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state
@@ -101,6 +103,26 @@ const MissionPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Keep ref in sync with chatOpen state
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+    if (chatOpen) setUnreadCount(0);
+  }, [chatOpen]);
+
+  // Listen for new messages to track unread count
+  useEffect(() => {
+    if (!id) return;
+    const msgChannel = supabase
+      .channel(`unread-${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_messages', filter: `mission_id=eq.${id}` }, () => {
+        if (!chatOpenRef.current) {
+          setUnreadCount((c) => c + 1);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(msgChannel); };
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -486,6 +508,11 @@ const MissionPage: React.FC = () => {
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-teal hover:bg-teal/90 text-primary-foreground shadow-lg flex items-center justify-center transition-transform hover:scale-105"
         >
           <MessageCircle className="w-6 h-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </button>
       )}
 
