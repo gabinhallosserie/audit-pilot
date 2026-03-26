@@ -52,6 +52,51 @@ export type Database = {
           },
         ]
       }
+      audit_requests: {
+        Row: {
+          audit_type: string
+          budget: string | null
+          company: string
+          created_at: string
+          desired_date: string
+          estimated_duration: string
+          id: string
+          perimetre: string
+          referentiel: string
+          requester_email: string
+          requester_name: string
+          status: string
+        }
+        Insert: {
+          audit_type: string
+          budget?: string | null
+          company: string
+          created_at?: string
+          desired_date: string
+          estimated_duration?: string
+          id?: string
+          perimetre?: string
+          referentiel: string
+          requester_email: string
+          requester_name: string
+          status?: string
+        }
+        Update: {
+          audit_type?: string
+          budget?: string | null
+          company?: string
+          created_at?: string
+          desired_date?: string
+          estimated_duration?: string
+          id?: string
+          perimetre?: string
+          referentiel?: string
+          requester_email?: string
+          requester_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       audits: {
         Row: {
           audite: string
