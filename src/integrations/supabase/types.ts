@@ -171,6 +171,47 @@ export type Database = {
           },
         ]
       }
+      finding_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          finding_id: string
+          id: string
+          mission_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number
+          file_type: string
+          finding_id: string
+          id: string
+          mission_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          finding_id?: string
+          id?: string
+          mission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finding_attachments_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       findings: {
         Row: {
           clause: string | null
@@ -433,6 +474,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      signatures: {
+        Row: {
+          created_at: string
+          id: string
+          mission_id: string
+          signature_data: string
+          signer_role: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mission_id: string
+          signature_data: string
+          signer_role: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mission_id?: string
+          signature_data?: string
+          signer_role?: string
+        }
+        Relationships: []
       }
     }
     Views: {
