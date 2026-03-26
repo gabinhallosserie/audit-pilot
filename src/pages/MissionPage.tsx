@@ -17,12 +17,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen, ShieldCheck, MessageCircle } from "lucide-react";
+
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
 import OuvertureTab from "@/components/mission/OuvertureTab";
 import PostAuditTab from "@/components/mission/PostAuditTab";
-import MessagerieTab from "@/components/mission/MessagerieTab";
+import ChatPanel from "@/components/mission/ChatPanel";
 
 interface MissionData {
   id: string;
@@ -70,6 +71,7 @@ const MissionPage: React.FC = () => {
   const [findings, setFindings] = useState<FindingData[]>([]);
   const [checklist, setChecklist] = useState<ChecklistData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state
@@ -381,10 +383,6 @@ const MissionPage: React.FC = () => {
               Post-audit
             </TabsTrigger>
           )}
-          <TabsTrigger value="messagerie" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
-            <MessageCircle className="w-4 h-4" />
-            Messagerie
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="avant_audit">
@@ -479,10 +477,18 @@ const MissionPage: React.FC = () => {
           </TabsContent>
         )}
 
-        <TabsContent value="messagerie">
-          <MessagerieTab missionId={mission.id} />
-        </TabsContent>
       </Tabs>
+
+      {/* Floating chat button */}
+      <button
+        onClick={() => setChatOpen(true)}
+        className="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-teal hover:bg-teal/90 text-primary-foreground shadow-lg flex items-center justify-center transition-transform hover:scale-105"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </button>
+
+      {/* Chat panel overlay */}
+      <ChatPanel missionId={mission.id} open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 };
