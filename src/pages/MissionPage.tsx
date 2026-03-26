@@ -177,7 +177,10 @@ const MissionPage: React.FC = () => {
   }));
 
   const handleExportPDF = async () => {
-    generateReport(missionForReport, findingsForReport);
+    const sigs = await fetchSignatures(mission.id);
+    const sigMap: { auditeur?: string; audite?: string } = {};
+    (sigs as any[]).forEach((s) => { sigMap[s.signer_role as "auditeur" | "audite"] = s.signature_data; });
+    generateReport(missionForReport, findingsForReport, sigMap);
     toast.success("Rapport PDF généré");
     await createNotification({
       target_role: "audite",
