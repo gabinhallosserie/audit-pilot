@@ -88,7 +88,7 @@ const MissionPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-muted-foreground">{mission.id}</span>
-            <Badge className="bg-teal text-primary-foreground text-xs">{mission.status === "en_cours" ? "En cours" : mission.status}</Badge>
+            <Badge className="bg-teal text-primary-foreground text-xs">{missionStatus === "en_cours" ? "En cours" : missionStatus === "préparation" ? "Préparation" : missionStatus}</Badge>
           </div>
           <h1 className="font-display text-2xl font-bold">{mission.title}</h1>
           <p className="text-sm text-muted-foreground">{mission.referentiel} · {mission.company} · {new Date(mission.date).toLocaleDateString("fr-FR")}</p>
