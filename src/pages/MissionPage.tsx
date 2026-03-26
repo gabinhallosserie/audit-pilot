@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, FileDown, CheckSquare, ClipboardList, Trash2 } from "lucide-react";
+import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
+import AvantAuditTab from "@/components/mission/AvantAuditTab";
+import OuvertureTab from "@/components/mission/OuvertureTab";
 
 const MissionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
