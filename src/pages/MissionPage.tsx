@@ -104,6 +104,26 @@ const MissionPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  // Keep ref in sync with chatOpen state
+  useEffect(() => {
+    chatOpenRef.current = chatOpen;
+    if (chatOpen) setUnreadCount(0);
+  }, [chatOpen]);
+
+  // Listen for new messages to track unread count
+  useEffect(() => {
+    if (!id) return;
+    const msgChannel = supabase
+      .channel(`unread-${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_messages', filter: `mission_id=eq.${id}` }, () => {
+        if (!chatOpenRef.current) {
+          setUnreadCount((c) => c + 1);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(msgChannel); };
+  }, [id]);
+
   useEffect(() => {
     if (!id) return;
     const channel = supabase
