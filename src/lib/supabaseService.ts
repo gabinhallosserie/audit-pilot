@@ -130,3 +130,54 @@ export async function deleteParticipant(id: string) {
   const { error } = await supabase.from("opening_participants").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─── Corrective Actions ───
+export async function fetchCorrectiveActions(missionId: string) {
+  const { data, error } = await supabase.from("corrective_actions").select("*").eq("mission_id", missionId).order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+export async function insertCorrectiveAction(action: { id: string; mission_id: string; finding_id: string; responsible: string; deadline: string | null; expected_evidence: string; status: string }) {
+  const { error } = await supabase.from("corrective_actions").insert(action);
+  if (error) throw error;
+}
+
+export async function updateCorrectiveActionStatus(id: string, status: string) {
+  const { error } = await supabase.from("corrective_actions").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Ratings ───
+export async function fetchRatings(missionId: string) {
+  const { data, error } = await supabase.from("ratings").select("*").eq("mission_id", missionId);
+  if (error) throw error;
+  return data;
+}
+
+export async function upsertRating(rating: { mission_id: string; rater_role: string; score: number; comment: string }) {
+  const { error } = await supabase.from("ratings").upsert(rating, { onConflict: "mission_id,rater_role" });
+  if (error) throw error;
+}
+
+// ─── Notifications ───
+export async function fetchNotifications(targetRole: string) {
+  const { data, error } = await supabase.from("notifications").select("*").eq("target_role", targetRole).order("created_at", { ascending: false }).limit(50);
+  if (error) throw error;
+  return data;
+}
+
+export async function markNotificationRead(id: string) {
+  const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(targetRole: string) {
+  const { error } = await supabase.from("notifications").update({ read: true }).eq("target_role", targetRole).eq("read", false);
+  if (error) throw error;
+}
+
+export async function createNotification(notification: { target_role: string; mission_id?: string; type: string; title: string; description?: string }) {
+  const { error } = await supabase.from("notifications").insert(notification);
+  if (error) throw error;
+}
