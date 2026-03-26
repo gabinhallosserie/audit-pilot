@@ -236,7 +236,14 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
               <ClipboardCheck className="w-4 h-4 text-navy" />
               Plan d'actions correctives
             </div>
-            {isAuditeur && ecarts.length > 0 && (
+            <div className="flex gap-2">
+              {actions.length > 0 && (
+                <Button size="sm" variant="outline" className="gap-1 border-navy text-navy" onClick={exportCSV}>
+                  <Download className="w-3 h-3" />
+                  Exporter CSV
+                </Button>
+              )}
+              {isAuditeur && ecarts.length > 0 && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
