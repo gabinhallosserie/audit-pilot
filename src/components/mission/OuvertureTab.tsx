@@ -45,6 +45,7 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
   const [dialogOpen, setDialogOpen] = useState(false);
   const [missionStarted, setMissionStarted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [signatures, setSignatures] = useState<Record<string, string>>({});
 
   const [pName, setPName] = useState("");
   const [pRole, setPRole] = useState("");
