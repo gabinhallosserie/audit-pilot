@@ -6,15 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, PlayCircle, Users, ListChecks, Target } from "lucide-react";
+import { Plus, Trash2, PlayCircle, Users, ListChecks, Target, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import SignatureCanvas from "@/components/mission/SignatureCanvas";
 import {
   fetchOpeningReport,
   fetchParticipants,
   updateOpeningReport,
   insertParticipant,
   deleteParticipant,
+  fetchSignatures,
+  upsertSignature,
 } from "@/lib/supabaseService";
 import type { Mission } from "@/data/mockData";
 
@@ -42,6 +45,7 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
   const [dialogOpen, setDialogOpen] = useState(false);
   const [missionStarted, setMissionStarted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [signatures, setSignatures] = useState<Record<string, string>>({});
 
   const [pName, setPName] = useState("");
   const [pRole, setPRole] = useState("");
@@ -50,9 +54,10 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
   useEffect(() => {
     const load = async () => {
       try {
-        const [report, parts] = await Promise.all([
+        const [report, parts, sigs] = await Promise.all([
           fetchOpeningReport(mission.id),
           fetchParticipants(mission.id),
+          fetchSignatures(mission.id),
         ]);
         if (report) {
           setPerimetre(report.perimetre || "");
@@ -61,6 +66,9 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
           setMissionStarted(report.mission_started);
         }
         setParticipants(parts as Participant[]);
+        const sigMap: Record<string, string> = {};
+        (sigs as any[]).forEach((s) => { sigMap[s.signer_role] = s.signature_data; });
+        setSignatures(sigMap);
       } catch {
         toast.error("Erreur de chargement");
       } finally {
@@ -120,6 +128,16 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
       description: "L'auditeur et l'audité ont été notifiés.",
       duration: 5000,
     });
+  };
+
+  const handleSaveSignature = async (role: string, dataUrl: string) => {
+    try {
+      await upsertSignature({ mission_id: mission.id, signer_role: role, signature_data: dataUrl });
+      setSignatures((prev) => ({ ...prev, [role]: dataUrl }));
+      toast.success("Signature enregistrée");
+    } catch {
+      toast.error("Erreur lors de l'enregistrement de la signature");
+    }
   };
 
   if (loading) return <div className="text-center py-8 text-muted-foreground">Chargement...</div>;
@@ -283,6 +301,35 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
             Démarrer l'audit
           </Button>
         </div>
+      )}
+
+      {/* Signatures */}
+      {missionStarted && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base flex items-center gap-2">
+              <PenLine className="w-4 h-4 text-navy" />
+              Signatures électroniques
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-6">
+            <SignatureCanvas
+              label="Signature de l'auditeur"
+              existingSignature={signatures["auditeur"] || null}
+              disabled={!isAuditeur}
+              onSave={(data) => handleSaveSignature("auditeur", data)}
+            />
+            <SignatureCanvas
+              label="Signature de l'audité"
+              existingSignature={signatures["audite"] || null}
+              disabled={isAuditeur}
+              onSave={(data) => handleSaveSignature("audite", data)}
+            />
+            {signatures["auditeur"] && signatures["audite"] && (
+              <p className="col-span-2 text-xs text-teal font-medium">✓ Les deux signatures sont enregistrées — le rapport PDF inclura les signatures.</p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {isAuditeur && !missionStarted && !planValidated && (

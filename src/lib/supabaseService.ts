@@ -181,3 +181,46 @@ export async function createNotification(notification: { target_role: string; mi
   const { error } = await supabase.from("notifications").insert(notification);
   if (error) throw error;
 }
+
+// ─── Finding Attachments ───
+export async function fetchAttachments(findingId: string) {
+  const { data, error } = await supabase.from("finding_attachments").select("*").eq("finding_id", findingId).order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchAttachmentsByMission(missionId: string) {
+  const { data, error } = await supabase.from("finding_attachments").select("*").eq("mission_id", missionId).order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+export async function insertAttachment(attachment: { id: string; finding_id: string; mission_id: string; file_name: string; file_type: string; file_path: string; file_size: number }) {
+  const { error } = await supabase.from("finding_attachments").insert(attachment);
+  if (error) throw error;
+}
+
+export async function deleteAttachment(id: string, filePath: string) {
+  await supabase.storage.from("evidence").remove([filePath]);
+  const { error } = await supabase.from("finding_attachments").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function uploadEvidenceFile(filePath: string, file: File) {
+  const { error } = await supabase.storage.from("evidence").upload(filePath, file);
+  if (error) throw error;
+  const { data } = supabase.storage.from("evidence").getPublicUrl(filePath);
+  return data.publicUrl;
+}
+
+// ─── Signatures ───
+export async function fetchSignatures(missionId: string) {
+  const { data, error } = await supabase.from("signatures").select("*").eq("mission_id", missionId);
+  if (error) throw error;
+  return data;
+}
+
+export async function upsertSignature(signature: { mission_id: string; signer_role: string; signature_data: string }) {
+  const { error } = await supabase.from("signatures").upsert(signature, { onConflict: "mission_id,signer_role" });
+  if (error) throw error;
+}

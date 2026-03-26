@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { type Mission, type Finding, FINDING_LABELS, FINDING_HEX } from "@/data/mockData";
 
-export function generateReport(mission: Mission, findings: Finding[]) {
+export function generateReport(mission: Mission, findings: Finding[], signatures?: { auditeur?: string; audite?: string }) {
   const doc = new jsPDF();
   const navy = "#1B2A4A";
   const teal = "#00B4A6";
@@ -158,6 +158,9 @@ export function generateReport(mission: Mission, findings: Finding[]) {
   doc.text("Nom : Jean Martin", 14, y + 6);
   doc.text("Date :", 14, y + 12);
   doc.text("Signature :", 14, y + 18);
+  if (signatures?.auditeur) {
+    doc.addImage(signatures.auditeur, "PNG", 14, y + 20, 70, 25);
+  }
   doc.rect(14, y + 20, 70, 25);
 
   // Audité signature
@@ -167,6 +170,9 @@ export function generateReport(mission: Mission, findings: Finding[]) {
   doc.text(`Nom : ${mission.contact}`, pageWidth / 2 + 10, y + 6);
   doc.text("Date :", pageWidth / 2 + 10, y + 12);
   doc.text("Signature :", pageWidth / 2 + 10, y + 18);
+  if (signatures?.audite) {
+    doc.addImage(signatures.audite, "PNG", pageWidth / 2 + 10, y + 20, 70, 25);
+  }
   doc.rect(pageWidth / 2 + 10, y + 20, 70, 25);
 
   // Footer

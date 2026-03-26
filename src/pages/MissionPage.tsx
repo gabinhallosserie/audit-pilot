@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
-import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus, createNotification } from "@/lib/supabaseService";
+import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus, createNotification, fetchSignatures } from "@/lib/supabaseService";
+import FindingAttachments from "@/components/mission/FindingAttachments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -176,7 +177,10 @@ const MissionPage: React.FC = () => {
   }));
 
   const handleExportPDF = async () => {
-    generateReport(missionForReport, findingsForReport);
+    const sigs = await fetchSignatures(mission.id);
+    const sigMap: { auditeur?: string; audite?: string } = {};
+    (sigs as any[]).forEach((s) => { sigMap[s.signer_role as "auditeur" | "audite"] = s.signature_data; });
+    generateReport(missionForReport, findingsForReport, sigMap);
     toast.success("Rapport PDF généré");
     await createNotification({
       target_role: "audite",
@@ -379,6 +383,7 @@ const MissionPage: React.FC = () => {
                           </div>
                           <p className="text-sm">{f.description}</p>
                           {f.evidence && <p className="text-xs text-muted-foreground mt-1">Preuves : {f.evidence}</p>}
+                          <FindingAttachments findingId={f.id} missionId={mission.id} readOnly={isCloturee} />
                         </div>
                         {!isCloturee && (
                           <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFinding(f.id)}>
