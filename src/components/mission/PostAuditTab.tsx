@@ -335,16 +335,20 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
                         )}
                       </div>
                       <div>
-                        <Select value={action.status} onValueChange={(v) => changeStatus(action.id, v)}>
-                          <SelectTrigger className="w-[130px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="en_cours">En cours</SelectItem>
-                            <SelectItem value="réalisée">Réalisée</SelectItem>
-                            <SelectItem value="en_retard">En retard</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {isAuditeur ? (
+                          <Select value={action.status} onValueChange={(v) => changeStatus(action.id, v)}>
+                            <SelectTrigger className="w-[130px] h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="en_cours">En cours</SelectItem>
+                              <SelectItem value="réalisée">Réalisée</SelectItem>
+                              <SelectItem value="en_retard">En retard</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className={`${sc.class} text-xs`}>{sc.label}</Badge>
+                        )}
                       </div>
                     </div>
                   </div>
