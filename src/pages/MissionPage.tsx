@@ -71,6 +71,7 @@ const MissionPage: React.FC = () => {
   const [findings, setFindings] = useState<FindingData[]>([]);
   const [checklist, setChecklist] = useState<ChecklistData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state
