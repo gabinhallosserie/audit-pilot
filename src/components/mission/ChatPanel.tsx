@@ -101,7 +101,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ missionId, open, onClose }) => {
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-card border-l shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
+      <div className="fixed right-0 top-0 h-screen w-full max-w-md bg-card border-l shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
         {/* Header */}
         <div className="gradient-navy px-4 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
