@@ -124,7 +124,13 @@ const LoginPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <p className="text-center text-primary-foreground/40 text-xs mt-6">
+        <div className="text-center mt-4">
+          <button onClick={() => navigate("/register")} className="text-primary-foreground/70 hover:text-primary-foreground text-sm underline underline-offset-2 transition-colors">
+            Créer un compte
+          </button>
+        </div>
+
+        <p className="text-center text-primary-foreground/40 text-xs mt-4">
           POC Phase 1 — Données de démonstration
         </p>
       </div>
