@@ -96,7 +96,23 @@ const MissionPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
+  // Realtime subscriptions for live updates
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`mission-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'findings', filter: `mission_id=eq.${id}` }, () => {
+        fetchFindings(id).then((f) => setFindings(f as FindingData[])).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_items', filter: `mission_id=eq.${id}` }, () => {
+        fetchChecklist(id).then((c) => setChecklist(c as ChecklistData[])).catch(() => {});
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'missions', filter: `id=eq.${id}` }, (payload) => {
+        setMission((prev) => prev ? { ...prev, ...(payload.new as any) } : prev);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
   if (!mission) return <div className="text-center py-12">Mission introuvable</div>;
 
   const isCloturee = mission.status === "clôturée";
