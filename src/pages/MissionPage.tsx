@@ -378,6 +378,10 @@ const MissionPage: React.FC = () => {
               Post-audit
             </TabsTrigger>
           )}
+          <TabsTrigger value="messagerie" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+            <MessageCircle className="w-4 h-4" />
+            Messagerie
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="avant_audit">
