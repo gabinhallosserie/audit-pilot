@@ -163,8 +163,16 @@ const MissionPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="constats">
+      <Tabs defaultValue="avant_audit">
         <TabsList className="bg-muted">
+          <TabsTrigger value="avant_audit" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+            <FileSearch className="w-4 h-4" />
+            Avant-audit
+          </TabsTrigger>
+          <TabsTrigger value="ouverture" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+            <DoorOpen className="w-4 h-4" />
+            Ouverture
+          </TabsTrigger>
           <TabsTrigger value="constats" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
             <ClipboardList className="w-4 h-4" />
             Constats ({findings.length})
@@ -174,6 +182,22 @@ const MissionPage: React.FC = () => {
             Checklist
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="avant_audit">
+          <AvantAuditTab
+            missionId={mission.id}
+            planValidated={planValidated}
+            onValidatePlan={() => setPlanValidated(true)}
+          />
+        </TabsContent>
+
+        <TabsContent value="ouverture">
+          <OuvertureTab
+            mission={mission}
+            planValidated={planValidated}
+            onStartAudit={() => setMissionStatus("en_cours")}
+          />
+        </TabsContent>
 
         <TabsContent value="constats">
           <Card>
