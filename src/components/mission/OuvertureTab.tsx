@@ -303,6 +303,35 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
         </div>
       )}
 
+      {/* Signatures */}
+      {missionStarted && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="font-display text-base flex items-center gap-2">
+              <PenLine className="w-4 h-4 text-navy" />
+              Signatures électroniques
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-6">
+            <SignatureCanvas
+              label="Signature de l'auditeur"
+              existingSignature={signatures["auditeur"] || null}
+              disabled={!isAuditeur}
+              onSave={(data) => handleSaveSignature("auditeur", data)}
+            />
+            <SignatureCanvas
+              label="Signature de l'audité"
+              existingSignature={signatures["audite"] || null}
+              disabled={isAuditeur}
+              onSave={(data) => handleSaveSignature("audite", data)}
+            />
+            {signatures["auditeur"] && signatures["audite"] && (
+              <p className="col-span-2 text-xs text-teal font-medium">✓ Les deux signatures sont enregistrées — le rapport PDF inclura les signatures.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {isAuditeur && !missionStarted && !planValidated && (
         <Card className="border-warning/50 bg-warning/5">
           <CardContent className="py-3 px-4 text-sm text-muted-foreground">
