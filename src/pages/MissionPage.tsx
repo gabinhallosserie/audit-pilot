@@ -22,7 +22,7 @@ import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
 import OuvertureTab from "@/components/mission/OuvertureTab";
 import PostAuditTab from "@/components/mission/PostAuditTab";
-import MessagerieTab from "@/components/mission/MessagerieTab";
+import ChatPanel from "@/components/mission/ChatPanel";
 
 interface MissionData {
   id: string;
