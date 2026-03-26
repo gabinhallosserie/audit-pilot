@@ -292,6 +292,7 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
                 </DialogContent>
               </Dialog>
             )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
