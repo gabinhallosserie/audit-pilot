@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
 import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus, createNotification, fetchSignatures } from "@/lib/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +64,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 const MissionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const isAuditeur = user?.role === "auditeur";
   const [mission, setMission] = useState<MissionData | null>(null);
   const [findings, setFindings] = useState<FindingData[]>([]);
   const [checklist, setChecklist] = useState<ChecklistData[]>([]);
@@ -97,7 +100,6 @@ const MissionPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Realtime subscriptions for live updates
   useEffect(() => {
     if (!id) return;
     const channel = supabase
@@ -142,7 +144,6 @@ const MissionPage: React.FC = () => {
     setDialogOpen(false);
     toast.success("Constat ajouté");
 
-    // Notification
     await createNotification({
       target_role: "audite",
       mission_id: mission.id,
@@ -264,7 +265,8 @@ const MissionPage: React.FC = () => {
           <p className="text-sm text-muted-foreground">{mission.referentiel} · {mission.company} · {new Date(mission.date).toLocaleDateString("fr-FR")}</p>
         </div>
         <div className="flex gap-2">
-          {!isCloturee && (
+          {/* Only auditeur can add findings */}
+          {isAuditeur && !isCloturee && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
@@ -311,7 +313,8 @@ const MissionPage: React.FC = () => {
             <FileDown className="w-4 h-4" />
             Rapport PDF
           </Button>
-          {mission.status === "en_cours" && (
+          {/* Only auditeur can close */}
+          {isAuditeur && mission.status === "en_cours" && (
             <Button variant="outline" className="gap-1 border-navy text-navy hover:bg-navy hover:text-primary-foreground" onClick={handleCloturer}>
               <ShieldCheck className="w-4 h-4" />
               Clôturer
@@ -407,7 +410,7 @@ const MissionPage: React.FC = () => {
                 <div className="text-center py-12 text-muted-foreground">
                   <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-40" />
                   <p className="text-sm">Aucun constat enregistré</p>
-                  <p className="text-xs mt-1">Cliquez sur « Nouveau constat » pour commencer</p>
+                  {isAuditeur && <p className="text-xs mt-1">Cliquez sur « Nouveau constat » pour commencer</p>}
                 </div>
               ) : (
                 <div className="divide-y">
@@ -421,9 +424,10 @@ const MissionPage: React.FC = () => {
                           </div>
                           <p className="text-sm">{f.description}</p>
                           {f.evidence && <p className="text-xs text-muted-foreground mt-1">Preuves : {f.evidence}</p>}
-                          <FindingAttachments findingId={f.id} missionId={mission.id} readOnly={isCloturee} />
+                          <FindingAttachments findingId={f.id} missionId={mission.id} readOnly={isCloturee || !isAuditeur} />
                         </div>
-                        {!isCloturee && (
+                        {/* Only auditeur can delete findings */}
+                        {isAuditeur && !isCloturee && (
                           <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFinding(f.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -450,11 +454,12 @@ const MissionPage: React.FC = () => {
                 {checklist.map((item) => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-3 px-6 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                    className={`flex items-center gap-3 px-6 py-3 transition-colors ${isAuditeur ? "hover:bg-muted/30 cursor-pointer" : ""}`}
                   >
                     <Checkbox
                       checked={item.checked}
-                      onCheckedChange={() => toggleChecklist(item.id)}
+                      onCheckedChange={() => isAuditeur && toggleChecklist(item.id)}
+                      disabled={!isAuditeur}
                       className="data-[state=checked]:bg-teal data-[state=checked]:border-teal"
                     />
                     <span className="text-xs font-mono text-muted-foreground w-10">{item.clause}</span>
