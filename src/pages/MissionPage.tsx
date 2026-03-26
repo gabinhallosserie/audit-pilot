@@ -508,6 +508,11 @@ const MissionPage: React.FC = () => {
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-teal hover:bg-teal/90 text-primary-foreground shadow-lg flex items-center justify-center transition-transform hover:scale-105"
         >
           <MessageCircle className="w-6 h-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </button>
       )}
 
