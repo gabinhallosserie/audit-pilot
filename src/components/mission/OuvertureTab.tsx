@@ -326,7 +326,17 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
               onSave={(data) => handleSaveSignature("audite", data)}
             />
             {signatures["auditeur"] && signatures["audite"] && (
-              <p className="col-span-2 text-xs text-teal font-medium">✓ Les deux signatures sont enregistrées — le rapport PDF inclura les signatures.</p>
+              <div className="col-span-2 space-y-2">
+                <p className="text-xs text-teal font-medium">✓ Les deux signatures sont enregistrées — le rapport PDF inclura les signatures.</p>
+                <Button
+                  variant="outline"
+                  className="gap-1 border-navy text-navy hover:bg-navy hover:text-primary-foreground"
+                  onClick={handleGenerateMissionDoc}
+                >
+                  <FileDown className="w-4 h-4" />
+                  Générer le document de mission
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
