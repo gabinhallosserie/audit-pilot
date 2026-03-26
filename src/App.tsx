@@ -8,6 +8,7 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardAudite from "@/pages/DashboardAudite";
 import DashboardAuditeur from "@/pages/DashboardAuditeur";
 import MissionPage from "@/pages/MissionPage";
+import DashboardAdmin from "@/pages/DashboardAdmin";
 import AppLayout from "@/components/AppLayout";
 import NotFound from "@/pages/NotFound";
 
@@ -16,6 +17,7 @@ const queryClient = new QueryClient();
 const DashboardRouter = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/" />;
+  if (user.role === "admin") return <DashboardAdmin />;
   return user.role === "audite" ? <DashboardAudite /> : <DashboardAuditeur />;
 };
 
