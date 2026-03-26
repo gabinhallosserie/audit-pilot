@@ -547,6 +547,81 @@ export type Database = {
           },
         ]
       }
+      registration_accounts: {
+        Row: {
+          account_type: string
+          accreditations: string[] | null
+          auditeur_statut: string | null
+          auditeurs_rattaches: string[] | null
+          certifications_visees: string[] | null
+          created_at: string
+          domaines_expertise: string[] | null
+          email: string
+          id: string
+          justificatifs_paths: string[] | null
+          langues: string[] | null
+          nom: string | null
+          phone: string | null
+          prenom: string | null
+          raison_sociale: string | null
+          referentiels_maitrises: string[] | null
+          secteur: string | null
+          siret: string | null
+          status: string
+          taille: string | null
+          tarification: string | null
+          zone_geographique: string | null
+        }
+        Insert: {
+          account_type: string
+          accreditations?: string[] | null
+          auditeur_statut?: string | null
+          auditeurs_rattaches?: string[] | null
+          certifications_visees?: string[] | null
+          created_at?: string
+          domaines_expertise?: string[] | null
+          email: string
+          id?: string
+          justificatifs_paths?: string[] | null
+          langues?: string[] | null
+          nom?: string | null
+          phone?: string | null
+          prenom?: string | null
+          raison_sociale?: string | null
+          referentiels_maitrises?: string[] | null
+          secteur?: string | null
+          siret?: string | null
+          status?: string
+          taille?: string | null
+          tarification?: string | null
+          zone_geographique?: string | null
+        }
+        Update: {
+          account_type?: string
+          accreditations?: string[] | null
+          auditeur_statut?: string | null
+          auditeurs_rattaches?: string[] | null
+          certifications_visees?: string[] | null
+          created_at?: string
+          domaines_expertise?: string[] | null
+          email?: string
+          id?: string
+          justificatifs_paths?: string[] | null
+          langues?: string[] | null
+          nom?: string | null
+          phone?: string | null
+          prenom?: string | null
+          raison_sociale?: string | null
+          referentiels_maitrises?: string[] | null
+          secteur?: string | null
+          siret?: string | null
+          status?: string
+          taille?: string | null
+          tarification?: string | null
+          zone_geographique?: string | null
+        }
+        Relationships: []
+      }
       signatures: {
         Row: {
           created_at: string
