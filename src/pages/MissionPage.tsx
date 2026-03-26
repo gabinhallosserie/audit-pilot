@@ -339,6 +339,19 @@ const MissionPage: React.FC = () => {
         </Card>
       </div>
 
+      {/* Live progress bar */}
+      {checklist.length > 0 && (
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium">Avancement checklist</span>
+              <span className="text-xs font-bold text-teal">{Math.round((checkedCount / checklist.length) * 100)}%</span>
+            </div>
+            <Progress value={(checkedCount / checklist.length) * 100} className="h-2" />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs defaultValue="avant_audit">
         <TabsList className="bg-muted">
