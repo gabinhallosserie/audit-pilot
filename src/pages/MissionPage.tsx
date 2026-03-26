@@ -17,13 +17,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen, ShieldCheck, MessageCircle } from "lucide-react";
-
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
 import OuvertureTab from "@/components/mission/OuvertureTab";
 import PostAuditTab from "@/components/mission/PostAuditTab";
-import ChatPanel from "@/components/mission/ChatPanel";
+import MessagerieTab from "@/components/mission/MessagerieTab";
 
 interface MissionData {
   id: string;
@@ -71,9 +70,6 @@ const MissionPage: React.FC = () => {
   const [findings, setFindings] = useState<FindingData[]>([]);
   const [checklist, setChecklist] = useState<ChecklistData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const chatOpenRef = React.useRef(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state
@@ -103,26 +99,6 @@ const MissionPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // Keep ref in sync with chatOpen state
-  useEffect(() => {
-    chatOpenRef.current = chatOpen;
-    if (chatOpen) setUnreadCount(0);
-  }, [chatOpen]);
-
-  // Listen for new messages to track unread count
-  useEffect(() => {
-    if (!id) return;
-    const msgChannel = supabase
-      .channel(`unread-${id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mission_messages', filter: `mission_id=eq.${id}` }, () => {
-        if (!chatOpenRef.current) {
-          setUnreadCount((c) => c + 1);
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(msgChannel); };
-  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -405,6 +381,10 @@ const MissionPage: React.FC = () => {
               Post-audit
             </TabsTrigger>
           )}
+          <TabsTrigger value="messagerie" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+            <MessageCircle className="w-4 h-4" />
+            Messagerie
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="avant_audit">
@@ -499,25 +479,10 @@ const MissionPage: React.FC = () => {
           </TabsContent>
         )}
 
+        <TabsContent value="messagerie">
+          <MessagerieTab missionId={mission.id} />
+        </TabsContent>
       </Tabs>
-
-      {/* Floating chat button */}
-      {!chatOpen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-teal hover:bg-teal/90 text-primary-foreground shadow-lg flex items-center justify-center transition-transform hover:scale-105"
-        >
-          <MessageCircle className="w-6 h-6" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </button>
-      )}
-
-      {/* Chat panel overlay */}
-      <ChatPanel missionId={mission.id} open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 };
