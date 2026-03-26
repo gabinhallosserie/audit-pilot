@@ -246,3 +246,15 @@ export async function insertAuditRequest(request: {
   const { error } = await supabase.from("audit_requests").insert(request);
   if (error) throw error;
 }
+
+// ─── Mission Messages ───
+export async function fetchMessages(missionId: string) {
+  const { data, error } = await supabase.from("mission_messages").select("*").eq("mission_id", missionId).order("created_at");
+  if (error) throw error;
+  return data;
+}
+
+export async function insertMessage(message: { mission_id: string; sender_name: string; sender_role: string; content: string }) {
+  const { error } = await supabase.from("mission_messages").insert(message);
+  if (error) throw error;
+}
