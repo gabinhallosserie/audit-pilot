@@ -295,6 +295,33 @@ export type Database = {
           },
         ]
       }
+      mission_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          mission_id: string
+          sender_name: string
+          sender_role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          mission_id: string
+          sender_name: string
+          sender_role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          mission_id?: string
+          sender_name?: string
+          sender_role?: string
+        }
+        Relationships: []
+      }
       missions: {
         Row: {
           audit_id: string
