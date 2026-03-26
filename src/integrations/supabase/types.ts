@@ -14,7 +14,302 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_plan_processes: {
+        Row: {
+          created_at: string
+          date: string | null
+          duration: string | null
+          id: string
+          mission_id: string
+          name: string
+          responsible: string | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          duration?: string | null
+          id: string
+          mission_id: string
+          name: string
+          responsible?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          duration?: string | null
+          id?: string
+          mission_id?: string
+          name?: string
+          responsible?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_plan_processes_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audits: {
+        Row: {
+          audite: string
+          auditeur: string
+          company: string
+          created_at: string
+          date: string
+          id: string
+          perimetre: string
+          referentiel: string
+          status: string
+          title: string
+        }
+        Insert: {
+          audite: string
+          auditeur: string
+          company: string
+          created_at?: string
+          date: string
+          id: string
+          perimetre: string
+          referentiel: string
+          status?: string
+          title: string
+        }
+        Update: {
+          audite?: string
+          auditeur?: string
+          company?: string
+          created_at?: string
+          date?: string
+          id?: string
+          perimetre?: string
+          referentiel?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      checklist_items: {
+        Row: {
+          checked: boolean
+          clause: string
+          description: string
+          id: string
+          mission_id: string
+        }
+        Insert: {
+          checked?: boolean
+          clause: string
+          description: string
+          id: string
+          mission_id: string
+        }
+        Update: {
+          checked?: boolean
+          clause?: string
+          description?: string
+          id?: string
+          mission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      findings: {
+        Row: {
+          clause: string | null
+          created_at: string
+          description: string
+          evidence: string | null
+          id: string
+          mission_id: string
+          type: string
+        }
+        Insert: {
+          clause?: string | null
+          created_at?: string
+          description: string
+          evidence?: string | null
+          id: string
+          mission_id: string
+          type: string
+        }
+        Update: {
+          clause?: string | null
+          created_at?: string
+          description?: string
+          evidence?: string | null
+          id?: string
+          mission_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "findings_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          audit_id: string
+          company: string
+          contact: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          plan_validated: boolean
+          referentiel: string
+          status: string
+          title: string
+        }
+        Insert: {
+          audit_id: string
+          company: string
+          contact: string
+          created_at?: string
+          date: string
+          id: string
+          notes?: string | null
+          plan_validated?: boolean
+          referentiel: string
+          status?: string
+          title: string
+        }
+        Update: {
+          audit_id?: string
+          company?: string
+          contact?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          plan_validated?: boolean
+          referentiel?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missions_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opening_participants: {
+        Row: {
+          id: string
+          mission_id: string
+          name: string
+          organisation: string | null
+          role: string | null
+        }
+        Insert: {
+          id: string
+          mission_id: string
+          name: string
+          organisation?: string | null
+          role?: string | null
+        }
+        Update: {
+          id?: string
+          mission_id?: string
+          name?: string
+          organisation?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_participants_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opening_reports: {
+        Row: {
+          agenda: Json | null
+          created_at: string
+          id: string
+          mission_id: string
+          mission_started: boolean
+          perimetre: string | null
+          remarques: string | null
+        }
+        Insert: {
+          agenda?: Json | null
+          created_at?: string
+          id?: string
+          mission_id: string
+          mission_started?: boolean
+          perimetre?: string | null
+          remarques?: string | null
+        }
+        Update: {
+          agenda?: Json | null
+          created_at?: string
+          id?: string
+          mission_id?: string
+          mission_started?: boolean
+          perimetre?: string | null
+          remarques?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_reports_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: true
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_checklist_items: {
+        Row: {
+          checked: boolean
+          id: string
+          label: string
+          process_id: string
+        }
+        Insert: {
+          checked?: boolean
+          id: string
+          label: string
+          process_id: string
+        }
+        Update: {
+          checked?: boolean
+          id?: string
+          label?: string
+          process_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_checklist_items_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "audit_plan_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
