@@ -15,12 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen, ShieldCheck } from "lucide-react";
+import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen, ShieldCheck, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
 import OuvertureTab from "@/components/mission/OuvertureTab";
 import PostAuditTab from "@/components/mission/PostAuditTab";
+import MessagerieTab from "@/components/mission/MessagerieTab";
 
 interface MissionData {
   id: string;
