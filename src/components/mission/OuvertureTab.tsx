@@ -16,6 +16,8 @@ import {
   updateOpeningReport,
   insertParticipant,
   deleteParticipant,
+  fetchSignatures,
+  upsertSignature,
 } from "@/lib/supabaseService";
 import type { Mission } from "@/data/mockData";
 
