@@ -130,6 +130,16 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
     });
   };
 
+  const handleSaveSignature = async (role: string, dataUrl: string) => {
+    try {
+      await upsertSignature({ mission_id: mission.id, signer_role: role, signature_data: dataUrl });
+      setSignatures((prev) => ({ ...prev, [role]: dataUrl }));
+      toast.success("Signature enregistrée");
+    } catch {
+      toast.error("Erreur lors de l'enregistrement de la signature");
+    }
+  };
+
   if (loading) return <div className="text-center py-8 text-muted-foreground">Chargement...</div>;
 
   return (
