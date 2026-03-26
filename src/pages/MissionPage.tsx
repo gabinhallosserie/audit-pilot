@@ -380,6 +380,7 @@ const MissionPage: React.FC = () => {
                           </div>
                           <p className="text-sm">{f.description}</p>
                           {f.evidence && <p className="text-xs text-muted-foreground mt-1">Preuves : {f.evidence}</p>}
+                          <FindingAttachments findingId={f.id} missionId={mission.id} readOnly={isCloturee} />
                         </div>
                         {!isCloturee && (
                           <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFinding(f.id)}>
