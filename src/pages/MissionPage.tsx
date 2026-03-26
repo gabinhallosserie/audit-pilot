@@ -23,7 +23,8 @@ const MissionPage: React.FC = () => {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([...MOCK_CHECKLIST]);
   const [dialogOpen, setDialogOpen] = useState(false);
-
+  const [planValidated, setPlanValidated] = useState(false);
+  const [missionStatus, setMissionStatus] = useState(mission?.status || "préparation");
   // Form state
   const [newType, setNewType] = useState<FindingType>("conformite");
   const [newClause, setNewClause] = useState("");
