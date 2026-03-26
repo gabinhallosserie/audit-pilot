@@ -113,6 +113,8 @@ const MissionPage: React.FC = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [id]);
+
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
   if (!mission) return <div className="text-center py-12">Mission introuvable</div>;
 
   const isCloturee = mission.status === "clôturée";
