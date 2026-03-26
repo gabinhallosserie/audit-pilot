@@ -224,3 +224,25 @@ export async function upsertSignature(signature: { mission_id: string; signer_ro
   const { error } = await supabase.from("signatures").upsert(signature, { onConflict: "mission_id,signer_role" });
   if (error) throw error;
 }
+
+// ─── Audit Requests ───
+export async function fetchAuditRequests() {
+  const { data, error } = await supabase.from("audit_requests").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function insertAuditRequest(request: {
+  audit_type: string;
+  referentiel: string;
+  perimetre: string;
+  desired_date: string;
+  estimated_duration: string;
+  budget: string;
+  requester_email: string;
+  requester_name: string;
+  company: string;
+}) {
+  const { error } = await supabase.from("audit_requests").insert(request);
+  if (error) throw error;
+}
