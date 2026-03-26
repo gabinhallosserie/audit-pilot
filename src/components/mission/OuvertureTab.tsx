@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Trash2, PlayCircle, Users, ListChecks, Target } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  fetchOpeningReport,
+  fetchParticipants,
+  updateOpeningReport,
+  insertParticipant,
+  deleteParticipant,
+} from "@/lib/supabaseService";
 import type { Mission } from "@/data/mockData";
 
 interface Participant {
   id: string;
   name: string;
-  role: string;
-  organisation: string;
+  role: string | null;
+  organisation: string | null;
 }
 
 interface OuvertureTabProps {
@@ -24,43 +31,53 @@ interface OuvertureTabProps {
   planValidated: boolean;
 }
 
-const DEFAULT_AGENDA = [
-  "Présentation de l'équipe d'audit",
-  "Rappel des objectifs et du périmètre de l'audit",
-  "Confirmation du planning et des méthodes d'audit",
-  "Présentation des critères d'audit",
-  "Rappel des règles de confidentialité",
-  "Questions et clarifications",
-];
-
 const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, planValidated }) => {
   const { user } = useAuth();
   const isAuditeur = user?.role === "auditeur";
 
-  const [participants, setParticipants] = useState<Participant[]>([
-    { id: "P-1", name: "Jean Martin", role: "Auditeur principal", organisation: "Consultant ISO" },
-    { id: "P-2", name: "Marie Dupont", role: "Représentant de la direction", organisation: "Écovert Industries" },
-  ]);
-  const [agenda, setAgenda] = useState<string[]>([...DEFAULT_AGENDA]);
-  const [perimetre, setPerimetre] = useState(mission.referentiel + " — " + mission.company);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [agenda, setAgenda] = useState<string[]>([]);
+  const [perimetre, setPerimetre] = useState("");
   const [remarques, setRemarques] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [missionStarted, setMissionStarted] = useState(mission.status === "en_cours");
+  const [missionStarted, setMissionStarted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // New participant form
   const [pName, setPName] = useState("");
   const [pRole, setPRole] = useState("");
   const [pOrg, setPOrg] = useState("");
 
-  const addParticipant = () => {
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [report, parts] = await Promise.all([
+          fetchOpeningReport(mission.id),
+          fetchParticipants(mission.id),
+        ]);
+        if (report) {
+          setPerimetre(report.perimetre || "");
+          setRemarques(report.remarques || "");
+          setAgenda((report.agenda as string[]) || []);
+          setMissionStarted(report.mission_started);
+        }
+        setParticipants(parts as Participant[]);
+      } catch {
+        toast.error("Erreur de chargement");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [mission.id]);
+
+  const addParticipantHandler = async () => {
     if (!pName.trim()) {
       toast.error("Le nom est obligatoire");
       return;
     }
-    setParticipants((prev) => [
-      ...prev,
-      { id: `P-${Date.now()}`, name: pName, role: pRole, organisation: pOrg },
-    ]);
+    const p = { id: `P-${Date.now()}`, mission_id: mission.id, name: pName, role: pRole, organisation: pOrg };
+    await insertParticipant(p);
+    setParticipants((prev) => [...prev, p]);
     setPName("");
     setPRole("");
     setPOrg("");
@@ -68,21 +85,35 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
     toast.success("Participant ajouté");
   };
 
-  const removeParticipant = (id: string) => {
+  const removeParticipantHandler = async (id: string) => {
+    await deleteParticipant(id);
     setParticipants((prev) => prev.filter((p) => p.id !== id));
   };
 
   const [newAgendaItem, setNewAgendaItem] = useState("");
-  const addAgendaItem = () => {
+  const addAgendaItem = async () => {
     if (!newAgendaItem.trim()) return;
-    setAgenda((prev) => [...prev, newAgendaItem]);
+    const updated = [...agenda, newAgendaItem];
+    await updateOpeningReport(mission.id, { agenda: updated });
+    setAgenda(updated);
     setNewAgendaItem("");
   };
-  const removeAgendaItem = (idx: number) => {
-    setAgenda((prev) => prev.filter((_, i) => i !== idx));
+  const removeAgendaItem = async (idx: number) => {
+    const updated = agenda.filter((_, i) => i !== idx);
+    await updateOpeningReport(mission.id, { agenda: updated });
+    setAgenda(updated);
   };
 
-  const handleStartAudit = () => {
+  const handlePerimetreBlur = async () => {
+    await updateOpeningReport(mission.id, { perimetre });
+  };
+
+  const handleRemarquesBlur = async () => {
+    await updateOpeningReport(mission.id, { remarques });
+  };
+
+  const handleStartAudit = async () => {
+    await updateOpeningReport(mission.id, { mission_started: true });
     setMissionStarted(true);
     onStartAudit();
     toast.success("🚀 La mission est passée en « Audit en cours »", {
@@ -91,9 +122,10 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
     });
   };
 
+  if (loading) return <div className="text-center py-8 text-muted-foreground">Chargement...</div>;
+
   return (
     <div className="space-y-4">
-      {/* Status banner */}
       {missionStarted && (
         <Card className="border-teal/50 bg-teal/5">
           <CardContent className="py-3 px-4 flex items-center gap-2">
@@ -123,12 +155,7 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
                   </p>
                 </div>
                 {isAuditeur && !missionStarted && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => removeParticipant(p.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeParticipantHandler(p.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
@@ -161,7 +188,7 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
                       <Label>Organisation</Label>
                       <Input value={pOrg} onChange={(e) => setPOrg(e.target.value)} placeholder="Ex: Écovert Industries" />
                     </div>
-                    <Button onClick={addParticipant} className="w-full bg-teal hover:bg-teal/90 text-primary-foreground">
+                    <Button onClick={addParticipantHandler} className="w-full bg-teal hover:bg-teal/90 text-primary-foreground">
                       Ajouter
                     </Button>
                   </div>
@@ -189,12 +216,7 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
                   <span className="text-sm">{item}</span>
                 </div>
                 {isAuditeur && !missionStarted && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive h-7 w-7"
-                    onClick={() => removeAgendaItem(idx)}
-                  >
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive h-7 w-7" onClick={() => removeAgendaItem(idx)}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 )}
@@ -231,6 +253,7 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
             rows={2}
             value={perimetre}
             onChange={(e) => setPerimetre(e.target.value)}
+            onBlur={handlePerimetreBlur}
             readOnly={!isAuditeur || missionStarted}
           />
         </CardContent>
@@ -247,18 +270,15 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
             placeholder="Remarques ou commentaires sur la réunion d'ouverture..."
             value={remarques}
             onChange={(e) => setRemarques(e.target.value)}
+            onBlur={handleRemarquesBlur}
             readOnly={missionStarted}
           />
         </CardContent>
       </Card>
 
-      {/* Start audit button */}
       {isAuditeur && !missionStarted && planValidated && (
         <div className="flex justify-end">
-          <Button
-            className="bg-navy hover:bg-navy/90 text-primary-foreground gap-2 px-6"
-            onClick={handleStartAudit}
-          >
+          <Button className="bg-navy hover:bg-navy/90 text-primary-foreground gap-2 px-6" onClick={handleStartAudit}>
             <PlayCircle className="w-5 h-5" />
             Démarrer l'audit
           </Button>

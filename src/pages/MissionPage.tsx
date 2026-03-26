@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { MOCK_MISSIONS, MOCK_CHECKLIST, FINDING_LABELS, FINDING_COLORS, type FindingType, type Finding, type ChecklistItem } from "@/data/mockData";
+import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
+import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus } from "@/lib/supabaseService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,37 +18,91 @@ import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
 import OuvertureTab from "@/components/mission/OuvertureTab";
 
+interface MissionData {
+  id: string;
+  audit_id: string;
+  title: string;
+  referentiel: string;
+  status: string;
+  date: string;
+  company: string;
+  contact: string;
+  plan_validated: boolean;
+  notes: string;
+}
+
+interface FindingData {
+  id: string;
+  mission_id: string;
+  type: string;
+  clause: string | null;
+  description: string;
+  evidence: string | null;
+  created_at: string;
+}
+
+interface ChecklistData {
+  id: string;
+  mission_id: string;
+  clause: string;
+  description: string;
+  checked: boolean;
+}
+
 const MissionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const mission = MOCK_MISSIONS.find((m) => m.id === id);
-  const [findings, setFindings] = useState<Finding[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([...MOCK_CHECKLIST]);
+  const [mission, setMission] = useState<MissionData | null>(null);
+  const [findings, setFindings] = useState<FindingData[]>([]);
+  const [checklist, setChecklist] = useState<ChecklistData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [planValidated, setPlanValidated] = useState(false);
-  const [missionStatus, setMissionStatus] = useState(mission?.status || "préparation");
+
   // Form state
   const [newType, setNewType] = useState<FindingType>("conformite");
   const [newClause, setNewClause] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newEvidence, setNewEvidence] = useState("");
 
+  const loadData = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [m, f, c] = await Promise.all([
+        fetchMission(id),
+        fetchFindings(id),
+        fetchChecklist(id),
+      ]);
+      setMission(m as MissionData);
+      setFindings(f as FindingData[]);
+      setChecklist(c as ChecklistData[]);
+    } catch {
+      toast.error("Erreur de chargement de la mission");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
   if (!mission) return <div className="text-center py-12">Mission introuvable</div>;
 
-  const addFinding = () => {
+  const addFinding = async () => {
     if (!newDesc.trim()) {
       toast.error("La description est obligatoire");
       return;
     }
-    const finding: Finding = {
+    const finding = {
       id: `F-${Date.now()}`,
-      missionId: mission.id,
+      mission_id: mission.id,
       type: newType,
       clause: newClause,
       description: newDesc,
       evidence: newEvidence,
-      createdAt: new Date().toISOString(),
     };
-    setFindings((prev) => [...prev, finding]);
+    await insertFinding(finding);
+    setFindings((prev) => [...prev, { ...finding, created_at: new Date().toISOString() }]);
     setNewType("conformite");
     setNewClause("");
     setNewDesc("");
@@ -56,14 +111,18 @@ const MissionPage: React.FC = () => {
     toast.success("Constat ajouté");
   };
 
-  const removeFinding = (fId: string) => {
+  const removeFinding = async (fId: string) => {
+    await deleteFinding(fId);
     setFindings((prev) => prev.filter((f) => f.id !== fId));
     toast.info("Constat supprimé");
   };
 
-  const toggleChecklist = (clId: string) => {
+  const toggleChecklist = async (clId: string) => {
+    const item = checklist.find((c) => c.id === clId);
+    if (!item) return;
+    await updateChecklistItem(clId, !item.checked);
     setChecklist((prev) =>
-      prev.map((item) => (item.id === clId ? { ...item, checked: !item.checked } : item))
+      prev.map((c) => (c.id === clId ? { ...c, checked: !c.checked } : c))
     );
   };
 
@@ -76,9 +135,40 @@ const MissionPage: React.FC = () => {
 
   const checkedCount = checklist.filter((c) => c.checked).length;
 
+  const missionForReport = {
+    id: mission.id,
+    auditId: mission.audit_id,
+    title: mission.title,
+    referentiel: mission.referentiel,
+    status: mission.status as any,
+    date: mission.date,
+    company: mission.company,
+    contact: mission.contact,
+  };
+
+  const findingsForReport = findings.map((f) => ({
+    id: f.id,
+    missionId: f.mission_id,
+    type: f.type as FindingType,
+    clause: f.clause || "",
+    description: f.description,
+    evidence: f.evidence || "",
+    createdAt: f.created_at,
+  }));
+
   const handleExportPDF = () => {
-    generateReport(mission, findings);
+    generateReport(missionForReport, findingsForReport);
     toast.success("Rapport PDF généré");
+  };
+
+  const handleValidatePlan = async () => {
+    await import("@/lib/supabaseService").then((s) => s.updateMissionPlanValidated(mission.id, true));
+    setMission((prev) => prev ? { ...prev, plan_validated: true } : prev);
+  };
+
+  const handleStartAudit = async () => {
+    await updateMissionStatus(mission.id, "en_cours");
+    setMission((prev) => prev ? { ...prev, status: "en_cours" } : prev);
   };
 
   return (
@@ -88,7 +178,9 @@ const MissionPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-muted-foreground">{mission.id}</span>
-            <Badge className="bg-teal text-primary-foreground text-xs">{missionStatus === "en_cours" ? "En cours" : missionStatus === "préparation" ? "Préparation" : missionStatus}</Badge>
+            <Badge className="bg-teal text-primary-foreground text-xs">
+              {mission.status === "en_cours" ? "En cours" : mission.status === "préparation" ? "Préparation" : mission.status}
+            </Badge>
           </div>
           <h1 className="font-display text-2xl font-bold">{mission.title}</h1>
           <p className="text-sm text-muted-foreground">{mission.referentiel} · {mission.company} · {new Date(mission.date).toLocaleDateString("fr-FR")}</p>
@@ -96,7 +188,7 @@ const MissionPage: React.FC = () => {
         <div className="flex gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-teal hover:bg-teal-dark text-primary-foreground gap-1">
+              <Button className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
                 <Plus className="w-4 h-4" />
                 Nouveau constat
               </Button>
@@ -129,7 +221,7 @@ const MissionPage: React.FC = () => {
                   <Label>Preuves / Éléments factuels</Label>
                   <Textarea rows={2} placeholder="Documents, observations, entretiens..." value={newEvidence} onChange={(e) => setNewEvidence(e.target.value)} />
                 </div>
-                <Button onClick={addFinding} className="w-full bg-teal hover:bg-teal-dark text-primary-foreground">
+                <Button onClick={addFinding} className="w-full bg-teal hover:bg-teal/90 text-primary-foreground">
                   Enregistrer le constat
                 </Button>
               </div>
@@ -186,16 +278,16 @@ const MissionPage: React.FC = () => {
         <TabsContent value="avant_audit">
           <AvantAuditTab
             missionId={mission.id}
-            planValidated={planValidated}
-            onValidatePlan={() => setPlanValidated(true)}
+            planValidated={mission.plan_validated}
+            onValidatePlan={handleValidatePlan}
           />
         </TabsContent>
 
         <TabsContent value="ouverture">
           <OuvertureTab
-            mission={mission}
-            planValidated={planValidated}
-            onStartAudit={() => setMissionStatus("en_cours")}
+            mission={missionForReport}
+            planValidated={mission.plan_validated}
+            onStartAudit={handleStartAudit}
           />
         </TabsContent>
 
@@ -215,7 +307,7 @@ const MissionPage: React.FC = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge className={`${FINDING_COLORS[f.type]} text-xs`}>{FINDING_LABELS[f.type]}</Badge>
+                            <Badge className={`${FINDING_COLORS[f.type as FindingType]} text-xs`}>{FINDING_LABELS[f.type as FindingType]}</Badge>
                             {f.clause && <span className="text-xs font-mono text-muted-foreground">Clause {f.clause}</span>}
                           </div>
                           <p className="text-sm">{f.description}</p>

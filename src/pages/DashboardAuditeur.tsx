@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MOCK_MISSIONS, MOCK_AUDITS } from "@/data/mockData";
+import { fetchMissions, fetchAudits } from "@/lib/supabaseService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClipboardCheck, FileText, ArrowRight, Briefcase, CalendarDays } from "lucide-react";
+import { toast } from "sonner";
 
 const missionStatusConfig: Record<string, { label: string; class: string }> = {
   préparation: { label: "Préparation", class: "bg-muted text-muted-foreground" },
@@ -14,6 +15,21 @@ const missionStatusConfig: Record<string, { label: string; class: string }> = {
 
 const DashboardAuditeur: React.FC = () => {
   const navigate = useNavigate();
+  const [missions, setMissions] = useState<any[]>([]);
+  const [auditsCount, setAuditsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([fetchMissions(), fetchAudits()])
+      .then(([m, a]) => {
+        setMissions(m);
+        setAuditsCount(a.length);
+      })
+      .catch(() => toast.error("Erreur de chargement"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -25,9 +41,9 @@ const DashboardAuditeur: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { label: "Missions actives", value: MOCK_MISSIONS.filter((m) => m.status === "en_cours").length, icon: <ClipboardCheck className="w-5 h-5" /> },
-          { label: "En préparation", value: MOCK_MISSIONS.filter((m) => m.status === "préparation").length, icon: <FileText className="w-5 h-5" /> },
-          { label: "Audits totaux", value: MOCK_AUDITS.length, icon: <Briefcase className="w-5 h-5" /> },
+          { label: "Missions actives", value: missions.filter((m) => m.status === "en_cours").length, icon: <ClipboardCheck className="w-5 h-5" /> },
+          { label: "En préparation", value: missions.filter((m) => m.status === "préparation").length, icon: <FileText className="w-5 h-5" /> },
+          { label: "Audits totaux", value: auditsCount, icon: <Briefcase className="w-5 h-5" /> },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="pt-5 pb-4">
@@ -48,8 +64,8 @@ const DashboardAuditeur: React.FC = () => {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
-            {MOCK_MISSIONS.map((mission) => {
-              const sc = missionStatusConfig[mission.status];
+            {missions.map((mission) => {
+              const sc = missionStatusConfig[mission.status] || missionStatusConfig.préparation;
               return (
                 <div key={mission.id} className="px-6 py-4 hover:bg-muted/50 transition-colors flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -65,7 +81,7 @@ const DashboardAuditeur: React.FC = () => {
                   </div>
                   <Button
                     size="sm"
-                    className="bg-teal hover:bg-teal-dark text-primary-foreground gap-1"
+                    className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1"
                     onClick={() => navigate(`/mission/${mission.id}`)}
                   >
                     Ouvrir
