@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { type Mission, type Finding, FINDING_LABELS, FINDING_HEX } from "@/data/mockData";
 
-export function generateReport(mission: Mission, findings: Finding[]) {
+export function generateReport(mission: Mission, findings: Finding[], signatures?: { auditeur?: string; audite?: string }) {
   const doc = new jsPDF();
   const navy = "#1B2A4A";
   const teal = "#00B4A6";
