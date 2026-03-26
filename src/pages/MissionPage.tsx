@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen, ShieldCheck, MessageCircle } from "lucide-react";
+
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
