@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Star, ClipboardCheck, AlertTriangle, Lock } from "lucide-react";
+import { Plus, Star, ClipboardCheck, AlertTriangle, Lock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
