@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
 import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus, createNotification } from "@/lib/supabaseService";
+import FindingAttachments from "@/components/mission/FindingAttachments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
