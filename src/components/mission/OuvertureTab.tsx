@@ -54,9 +54,10 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
   useEffect(() => {
     const load = async () => {
       try {
-        const [report, parts] = await Promise.all([
+        const [report, parts, sigs] = await Promise.all([
           fetchOpeningReport(mission.id),
           fetchParticipants(mission.id),
+          fetchSignatures(mission.id),
         ]);
         if (report) {
           setPerimetre(report.perimetre || "");
@@ -65,6 +66,9 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
           setMissionStarted(report.mission_started);
         }
         setParticipants(parts as Participant[]);
+        const sigMap: Record<string, string> = {};
+        (sigs as any[]).forEach((s) => { sigMap[s.signer_role] = s.signature_data; });
+        setSignatures(sigMap);
       } catch {
         toast.error("Erreur de chargement");
       } finally {
