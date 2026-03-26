@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
-import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus } from "@/lib/supabaseService";
+import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus, createNotification } from "@/lib/supabaseService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen } from "lucide-react";
+import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
 import AvantAuditTab from "@/components/mission/AvantAuditTab";
 import OuvertureTab from "@/components/mission/OuvertureTab";
+import PostAuditTab from "@/components/mission/PostAuditTab";
 
 interface MissionData {
   id: string;
@@ -48,6 +49,13 @@ interface ChecklistData {
   description: string;
   checked: boolean;
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  préparation: "Préparation",
+  en_cours: "En cours",
+  clôturée: "Clôturée",
+  clôture: "Clôture",
+};
 
 const MissionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,6 +96,8 @@ const MissionPage: React.FC = () => {
   if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
   if (!mission) return <div className="text-center py-12">Mission introuvable</div>;
 
+  const isCloturee = mission.status === "clôturée";
+
   const addFinding = async () => {
     if (!newDesc.trim()) {
       toast.error("La description est obligatoire");
@@ -109,6 +119,15 @@ const MissionPage: React.FC = () => {
     setNewEvidence("");
     setDialogOpen(false);
     toast.success("Constat ajouté");
+
+    // Notification
+    await createNotification({
+      target_role: "audite",
+      mission_id: mission.id,
+      type: "nouveau_constat",
+      title: "Nouveau constat saisi",
+      description: `${FINDING_LABELS[newType]} — ${newDesc.slice(0, 60)}`,
+    });
   };
 
   const removeFinding = async (fId: string) => {
@@ -156,19 +175,53 @@ const MissionPage: React.FC = () => {
     createdAt: f.created_at,
   }));
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     generateReport(missionForReport, findingsForReport);
     toast.success("Rapport PDF généré");
+    await createNotification({
+      target_role: "audite",
+      mission_id: mission.id,
+      type: "rapport_pdf",
+      title: "Rapport PDF disponible",
+      description: `Le rapport de la mission ${mission.title} a été généré.`,
+    });
   };
 
   const handleValidatePlan = async () => {
     await import("@/lib/supabaseService").then((s) => s.updateMissionPlanValidated(mission.id, true));
     setMission((prev) => prev ? { ...prev, plan_validated: true } : prev);
+    await createNotification({
+      target_role: "auditeur",
+      mission_id: mission.id,
+      type: "plan_valide",
+      title: "Plan d'audit validé",
+      description: `L'audité a validé le plan de la mission ${mission.title}.`,
+    });
   };
 
   const handleStartAudit = async () => {
     await updateMissionStatus(mission.id, "en_cours");
     setMission((prev) => prev ? { ...prev, status: "en_cours" } : prev);
+    await createNotification({
+      target_role: "audite",
+      mission_id: mission.id,
+      type: "audit_demarre",
+      title: "Audit démarré",
+      description: `La mission ${mission.title} est passée en « Audit en cours ».`,
+    });
+    await createNotification({
+      target_role: "auditeur",
+      mission_id: mission.id,
+      type: "audit_demarre",
+      title: "Audit démarré",
+      description: `La mission ${mission.title} est passée en « Audit en cours ».`,
+    });
+  };
+
+  const handleCloturer = async () => {
+    await updateMissionStatus(mission.id, "clôturée");
+    setMission((prev) => prev ? { ...prev, status: "clôturée" } : prev);
+    toast.success("Mission clôturée");
   };
 
   return (
@@ -178,59 +231,67 @@ const MissionPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-muted-foreground">{mission.id}</span>
-            <Badge className="bg-teal text-primary-foreground text-xs">
-              {mission.status === "en_cours" ? "En cours" : mission.status === "préparation" ? "Préparation" : mission.status}
+            <Badge className={`text-xs ${isCloturee ? "bg-navy text-primary-foreground" : "bg-teal text-primary-foreground"}`}>
+              {STATUS_LABELS[mission.status] || mission.status}
             </Badge>
           </div>
           <h1 className="font-display text-2xl font-bold">{mission.title}</h1>
           <p className="text-sm text-muted-foreground">{mission.referentiel} · {mission.company} · {new Date(mission.date).toLocaleDateString("fr-FR")}</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
-                <Plus className="w-4 h-4" />
-                Nouveau constat
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="font-display">Ajouter un constat</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-2">
-                <div className="space-y-2">
-                  <Label>Type de constat</Label>
-                  <Select value={newType} onValueChange={(v) => setNewType(v as FindingType)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(FINDING_LABELS) as FindingType[]).map((t) => (
-                        <SelectItem key={t} value={t}>{FINDING_LABELS[t]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Clause / Exigence</Label>
-                  <Input placeholder="Ex: 6.1.2" value={newClause} onChange={(e) => setNewClause(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Description du constat *</Label>
-                  <Textarea rows={3} placeholder="Décrivez le constat observé..." value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Preuves / Éléments factuels</Label>
-                  <Textarea rows={2} placeholder="Documents, observations, entretiens..." value={newEvidence} onChange={(e) => setNewEvidence(e.target.value)} />
-                </div>
-                <Button onClick={addFinding} className="w-full bg-teal hover:bg-teal/90 text-primary-foreground">
-                  Enregistrer le constat
+          {!isCloturee && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
+                  <Plus className="w-4 h-4" />
+                  Nouveau constat
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="font-display">Ajouter un constat</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-2">
+                  <div className="space-y-2">
+                    <Label>Type de constat</Label>
+                    <Select value={newType} onValueChange={(v) => setNewType(v as FindingType)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(FINDING_LABELS) as FindingType[]).map((t) => (
+                          <SelectItem key={t} value={t}>{FINDING_LABELS[t]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Clause / Exigence</Label>
+                    <Input placeholder="Ex: 6.1.2" value={newClause} onChange={(e) => setNewClause(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description du constat *</Label>
+                    <Textarea rows={3} placeholder="Décrivez le constat observé..." value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Preuves / Éléments factuels</Label>
+                    <Textarea rows={2} placeholder="Documents, observations, entretiens..." value={newEvidence} onChange={(e) => setNewEvidence(e.target.value)} />
+                  </div>
+                  <Button onClick={addFinding} className="w-full bg-teal hover:bg-teal/90 text-primary-foreground">
+                    Enregistrer le constat
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           <Button variant="outline" className="gap-1 border-navy text-navy hover:bg-navy hover:text-primary-foreground" onClick={handleExportPDF}>
             <FileDown className="w-4 h-4" />
             Rapport PDF
           </Button>
+          {mission.status === "en_cours" && (
+            <Button variant="outline" className="gap-1 border-navy text-navy hover:bg-navy hover:text-primary-foreground" onClick={handleCloturer}>
+              <ShieldCheck className="w-4 h-4" />
+              Clôturer
+            </Button>
+          )}
         </div>
       </div>
 
@@ -273,6 +334,12 @@ const MissionPage: React.FC = () => {
             <CheckSquare className="w-4 h-4" />
             Checklist
           </TabsTrigger>
+          {isCloturee && (
+            <TabsTrigger value="post_audit" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+              <ShieldCheck className="w-4 h-4" />
+              Post-audit
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="avant_audit">
@@ -313,9 +380,11 @@ const MissionPage: React.FC = () => {
                           <p className="text-sm">{f.description}</p>
                           {f.evidence && <p className="text-xs text-muted-foreground mt-1">Preuves : {f.evidence}</p>}
                         </div>
-                        <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFinding(f.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {!isCloturee && (
+                          <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFinding(f.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -355,6 +424,12 @@ const MissionPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isCloturee && (
+          <TabsContent value="post_audit">
+            <PostAuditTab missionId={mission.id} findings={findings} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

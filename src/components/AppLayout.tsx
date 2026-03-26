@@ -3,6 +3,7 @@ import { Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Shield, ClipboardCheck, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NotificationCenter from "@/components/NotificationCenter";
 
 const AppLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -49,7 +50,8 @@ const AppLayout: React.FC = () => {
           )}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <NotificationCenter />
           <div className="hidden sm:flex flex-col items-end">
             <span className="text-sm font-medium text-primary-foreground">{user.name}</span>
             <span className="text-xs text-primary-foreground/60 capitalize">
