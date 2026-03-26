@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, FileDown, CheckSquare, ClipboardList, Trash2 } from "lucide-react";
+import { Plus, FileDown, CheckSquare, ClipboardList, Trash2, FileSearch, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
 import { generateReport } from "@/lib/generateReport";
+import AvantAuditTab from "@/components/mission/AvantAuditTab";
+import OuvertureTab from "@/components/mission/OuvertureTab";
 
 const MissionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,7 +23,8 @@ const MissionPage: React.FC = () => {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([...MOCK_CHECKLIST]);
   const [dialogOpen, setDialogOpen] = useState(false);
-
+  const [planValidated, setPlanValidated] = useState(false);
+  const [missionStatus, setMissionStatus] = useState(mission?.status || "préparation");
   // Form state
   const [newType, setNewType] = useState<FindingType>("conformite");
   const [newClause, setNewClause] = useState("");
@@ -85,7 +88,7 @@ const MissionPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-muted-foreground">{mission.id}</span>
-            <Badge className="bg-teal text-primary-foreground text-xs">{mission.status === "en_cours" ? "En cours" : mission.status}</Badge>
+            <Badge className="bg-teal text-primary-foreground text-xs">{missionStatus === "en_cours" ? "En cours" : missionStatus === "préparation" ? "Préparation" : missionStatus}</Badge>
           </div>
           <h1 className="font-display text-2xl font-bold">{mission.title}</h1>
           <p className="text-sm text-muted-foreground">{mission.referentiel} · {mission.company} · {new Date(mission.date).toLocaleDateString("fr-FR")}</p>
@@ -160,8 +163,16 @@ const MissionPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="constats">
+      <Tabs defaultValue="avant_audit">
         <TabsList className="bg-muted">
+          <TabsTrigger value="avant_audit" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+            <FileSearch className="w-4 h-4" />
+            Avant-audit
+          </TabsTrigger>
+          <TabsTrigger value="ouverture" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
+            <DoorOpen className="w-4 h-4" />
+            Ouverture
+          </TabsTrigger>
           <TabsTrigger value="constats" className="gap-1 data-[state=active]:bg-navy data-[state=active]:text-primary-foreground">
             <ClipboardList className="w-4 h-4" />
             Constats ({findings.length})
@@ -171,6 +182,22 @@ const MissionPage: React.FC = () => {
             Checklist
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="avant_audit">
+          <AvantAuditTab
+            missionId={mission.id}
+            planValidated={planValidated}
+            onValidatePlan={() => setPlanValidated(true)}
+          />
+        </TabsContent>
+
+        <TabsContent value="ouverture">
+          <OuvertureTab
+            mission={mission}
+            planValidated={planValidated}
+            onStartAudit={() => setMissionStatus("en_cours")}
+          />
+        </TabsContent>
 
         <TabsContent value="constats">
           <Card>
