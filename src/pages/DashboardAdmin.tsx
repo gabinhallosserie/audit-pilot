@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Users, BarChart3, BookOpen, Plus, Star } from "lucide-react";
+import { Users, BookOpen, Plus, CheckCircle, Clock, Building2 } from "lucide-react";
 import { fetchAudits, fetchMissions, fetchRatings } from "@/lib/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,6 +15,18 @@ interface ManagedUser {
   role: string;
   company: string;
   active: boolean;
+}
+
+interface RegistrationAccount {
+  id: string;
+  account_type: string;
+  status: string;
+  email: string;
+  nom: string | null;
+  prenom: string | null;
+  raison_sociale: string | null;
+  auditeur_statut: string | null;
+  created_at: string;
 }
 
 interface Referentiel {
@@ -36,20 +48,34 @@ const INITIAL_REFS: Referentiel[] = [
   { id: "csrd", name: "CSRD", active: true },
 ];
 
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  audite: "Audité",
+  auditeur: "Auditeur",
+  organisme: "Organisme",
+};
+
 const DashboardAdmin: React.FC = () => {
   const [users, setUsers] = useState<ManagedUser[]>(INITIAL_USERS);
   const [referentiels, setReferentiels] = useState<Referentiel[]>(INITIAL_REFS);
   const [newRef, setNewRef] = useState("");
+  const [registrations, setRegistrations] = useState<RegistrationAccount[]>([]);
   const [stats, setStats] = useState({ total: 0, enCours: 0, termines: 0, auditeursActifs: 0, auditesActifs: 0, avgScore: 0 });
   const [loading, setLoading] = useState(true);
 
+  const loadRegistrations = async () => {
+    const { data } = await supabase
+      .from("registration_accounts")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setRegistrations(data as RegistrationAccount[]);
+  };
+
   useEffect(() => {
-    Promise.all([fetchAudits(), fetchMissions()])
+    Promise.all([fetchAudits(), fetchMissions(), loadRegistrations()])
       .then(async ([audits, missions]) => {
         const enCours = missions.filter((m: any) => m.status === "en_cours").length;
         const termines = missions.filter((m: any) => m.status === "clôture").length;
 
-        // Fetch all ratings for average
         let allScores: number[] = [];
         for (const m of missions) {
           try {
@@ -79,6 +105,26 @@ const DashboardAdmin: React.FC = () => {
     toast.success("Statut utilisateur mis à jour");
   };
 
+  const activateRegistration = async (id: string) => {
+    const { error } = await supabase
+      .from("registration_accounts")
+      .update({ status: "actif" } as any)
+      .eq("id", id);
+    if (error) { toast.error("Erreur lors de l'activation"); return; }
+    toast.success("Compte activé avec succès");
+    setRegistrations((prev) => prev.map((r) => r.id === id ? { ...r, status: "actif" } : r));
+  };
+
+  const deactivateRegistration = async (id: string) => {
+    const { error } = await supabase
+      .from("registration_accounts")
+      .update({ status: "désactivé" } as any)
+      .eq("id", id);
+    if (error) { toast.error("Erreur"); return; }
+    toast.success("Compte désactivé");
+    setRegistrations((prev) => prev.map((r) => r.id === id ? { ...r, status: "désactivé" } : r));
+  };
+
   const toggleRef = (id: string) => {
     setReferentiels((prev) =>
       prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r))
@@ -99,6 +145,8 @@ const DashboardAdmin: React.FC = () => {
   };
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
+
+  const pendingCount = registrations.filter((r) => r.status === "en_attente").length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -125,6 +173,76 @@ const DashboardAdmin: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* ── Demandes d'inscription ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-lg flex items-center gap-2">
+            <Clock className="w-5 h-5 text-warning" />
+            Demandes d'inscription
+            {pendingCount > 0 && <Badge className="bg-warning text-warning-foreground text-xs">{pendingCount} en attente</Badge>}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {registrations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">Aucune demande d'inscription</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {registrations.map((reg) => {
+                const displayName = reg.account_type === "organisme"
+                  ? reg.raison_sociale || reg.email
+                  : `${reg.prenom || ""} ${reg.nom || ""}`.trim() || reg.email;
+                const statusColor = reg.status === "en_attente"
+                  ? "bg-warning text-warning-foreground"
+                  : reg.status === "actif"
+                    ? "bg-success text-success-foreground"
+                    : "bg-destructive text-destructive-foreground";
+
+                return (
+                  <div key={reg.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="font-semibold text-sm">{displayName}</span>
+                        <Badge variant="outline" className="text-xs">{ACCOUNT_TYPE_LABELS[reg.account_type] || reg.account_type}</Badge>
+                        <Badge className={`text-xs ${statusColor}`}>
+                          {reg.status === "en_attente" ? "En attente" : reg.status === "actif" ? "Actif" : "Désactivé"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {reg.email} · Inscrit le {new Date(reg.created_at).toLocaleDateString("fr-FR")}
+                        {reg.auditeur_statut && ` · ${reg.auditeur_statut}`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {reg.status === "en_attente" && (
+                        <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground gap-1"
+                          onClick={() => activateRegistration(reg.id)}>
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Activer
+                        </Button>
+                      )}
+                      {reg.status === "actif" && (
+                        <Button size="sm" variant="outline" className="text-destructive gap-1"
+                          onClick={() => deactivateRegistration(reg.id)}>
+                          Désactiver
+                        </Button>
+                      )}
+                      {reg.status === "désactivé" && (
+                        <Button size="sm" variant="outline" className="gap-1"
+                          onClick={() => activateRegistration(reg.id)}>
+                          Réactiver
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Gestion des utilisateurs ── */}
       <Card>
