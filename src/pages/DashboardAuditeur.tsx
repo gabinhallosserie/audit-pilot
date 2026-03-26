@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchMissions, fetchAudits, fetchAuditRequests } from "@/lib/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, FileText, ArrowRight, Briefcase, CalendarDays, Inbox } from "lucide-react";
+import { ClipboardCheck, FileText, ArrowRight, Briefcase, CalendarDays, Inbox, Mail, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface AuditRequest {
@@ -21,6 +22,15 @@ interface AuditRequest {
   created_at: string;
 }
 
+interface Invitation {
+  id: string;
+  requester_name: string;
+  requester_company: string;
+  referentiel: string;
+  status: string;
+  created_at: string;
+}
+
 const missionStatusConfig: Record<string, { label: string; class: string }> = {
   préparation: { label: "Préparation", class: "bg-muted text-muted-foreground" },
   en_cours: { label: "En cours", class: "bg-teal text-primary-foreground" },
@@ -32,10 +42,19 @@ const DashboardAuditeur: React.FC = () => {
   const [missions, setMissions] = useState<any[]>([]);
   const [auditsCount, setAuditsCount] = useState(0);
   const [requests, setRequests] = useState<AuditRequest[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadInvitations = async () => {
+    const { data } = await supabase
+      .from("audit_invitations")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setInvitations(data as Invitation[]);
+  };
+
   useEffect(() => {
-    Promise.all([fetchMissions(), fetchAudits(), fetchAuditRequests()])
+    Promise.all([fetchMissions(), fetchAudits(), fetchAuditRequests(), loadInvitations()])
       .then(([m, a, r]) => {
         setMissions(m);
         setAuditsCount(a.length);
@@ -45,7 +64,19 @@ const DashboardAuditeur: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleInvitation = async (id: string, action: "acceptée" | "déclinée") => {
+    const { error } = await supabase
+      .from("audit_invitations")
+      .update({ status: action } as any)
+      .eq("id", id);
+    if (error) { toast.error("Erreur"); return; }
+    setInvitations((prev) => prev.map((inv) => inv.id === id ? { ...inv, status: action } : inv));
+    toast.success(action === "acceptée" ? "Invitation acceptée" : "Invitation déclinée");
+  };
+
   if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
+
+  const pendingInvitations = invitations.filter((i) => i.status === "en_attente");
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -60,7 +91,7 @@ const DashboardAuditeur: React.FC = () => {
           { label: "Missions actives", value: missions.filter((m) => m.status === "en_cours").length, icon: <ClipboardCheck className="w-5 h-5" /> },
           { label: "En préparation", value: missions.filter((m) => m.status === "préparation").length, icon: <FileText className="w-5 h-5" /> },
           { label: "Audits totaux", value: auditsCount, icon: <Briefcase className="w-5 h-5" /> },
-          { label: "Demandes reçues", value: requests.length, icon: <Inbox className="w-5 h-5" /> },
+          { label: "Invitations", value: pendingInvitations.length, icon: <Mail className="w-5 h-5" /> },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="pt-5 pb-4">
@@ -73,6 +104,62 @@ const DashboardAuditeur: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* Invitations reçues */}
+      {invitations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <Mail className="w-5 h-5 text-warning" />
+              Invitations d'audit reçues
+              {pendingInvitations.length > 0 && (
+                <Badge className="bg-warning text-warning-foreground text-xs">{pendingInvitations.length} en attente</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {invitations.map((inv) => {
+                const statusColor = inv.status === "en_attente"
+                  ? "bg-warning text-warning-foreground"
+                  : inv.status === "acceptée"
+                    ? "bg-success text-success-foreground"
+                    : "bg-destructive text-destructive-foreground";
+                return (
+                  <div key={inv.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="font-semibold text-sm">{inv.requester_company}</span>
+                        <Badge variant="outline" className="text-xs">{inv.referentiel}</Badge>
+                        <Badge className={`text-xs ${statusColor}`}>
+                          {inv.status === "en_attente" ? "En attente" : inv.status === "acceptée" ? "Acceptée" : "Déclinée"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        De {inv.requester_name} · {new Date(inv.created_at).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+                    {inv.status === "en_attente" && (
+                      <div className="flex gap-2">
+                        <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground gap-1"
+                          onClick={() => handleInvitation(inv.id, "acceptée")}>
+                          <Check className="w-3.5 h-3.5" />
+                          Accepter
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-destructive gap-1"
+                          onClick={() => handleInvitation(inv.id, "déclinée")}>
+                          <X className="w-3.5 h-3.5" />
+                          Décliner
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Missions */}
       <Card>

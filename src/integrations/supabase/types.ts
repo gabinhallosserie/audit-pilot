@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_invitations: {
+        Row: {
+          audit_request_id: string
+          auditor_account_id: string
+          auditor_email: string
+          auditor_name: string
+          created_at: string
+          id: string
+          referentiel: string
+          requester_company: string
+          requester_name: string
+          status: string
+        }
+        Insert: {
+          audit_request_id: string
+          auditor_account_id: string
+          auditor_email: string
+          auditor_name: string
+          created_at?: string
+          id?: string
+          referentiel: string
+          requester_company: string
+          requester_name: string
+          status?: string
+        }
+        Update: {
+          audit_request_id?: string
+          auditor_account_id?: string
+          auditor_email?: string
+          auditor_name?: string
+          created_at?: string
+          id?: string
+          referentiel?: string
+          requester_company?: string
+          requester_name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_invitations_audit_request_id_fkey"
+            columns: ["audit_request_id"]
+            isOneToOne: false
+            referencedRelation: "audit_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_invitations_auditor_account_id_fkey"
+            columns: ["auditor_account_id"]
+            isOneToOne: false
+            referencedRelation: "registration_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_plan_processes: {
         Row: {
           created_at: string
