@@ -140,6 +140,149 @@ const OuvertureTab: React.FC<OuvertureTabProps> = ({ mission, onStartAudit, plan
     }
   };
 
+  const handleGenerateMissionDoc = () => {
+    const jsPDF = (window as any).jspdf?.jsPDF;
+    import("jspdf").then(({ default: jsPDF }) => {
+      const doc = new jsPDF();
+      const navy = "#1B2A4A";
+      const teal = "#00B4A6";
+      const pw = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFillColor(navy);
+      doc.rect(0, 0, pw, 42, "F");
+      doc.setTextColor("#FFFFFF");
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("AUDIT.IO", 14, 18);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Document de mission", 14, 26);
+      doc.setFontSize(9);
+      doc.text(mission.title, 14, 34);
+      doc.text(`Ref: ${mission.id}`, pw - 14, 18, { align: "right" });
+      doc.text(new Date(mission.date).toLocaleDateString("fr-FR"), pw - 14, 26, { align: "right" });
+      doc.setFillColor(teal);
+      doc.rect(0, 42, pw, 2, "F");
+
+      let y = 54;
+      // Mission info
+      doc.setTextColor(navy);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Informations de la mission", 14, y);
+      y += 8;
+      doc.setFontSize(9);
+      doc.setTextColor("#333333");
+      const info = [
+        ["Référentiel", mission.referentiel],
+        ["Organisme", mission.company],
+        ["Contact audité", mission.contact],
+        ["Date", new Date(mission.date).toLocaleDateString("fr-FR")],
+      ];
+      info.forEach(([label, value]) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(`${label} :`, 14, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(value, 55, y);
+        y += 6;
+      });
+
+      // Périmètre
+      y += 6;
+      doc.setTextColor(navy);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Périmètre", 14, y);
+      y += 7;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor("#333333");
+      doc.text(perimetre || "Non renseigné", 14, y, { maxWidth: pw - 28 });
+      y += perimetre ? Math.ceil(perimetre.length / 90) * 5 + 5 : 8;
+
+      // Participants
+      y += 4;
+      doc.setTextColor(navy);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Participants", 14, y);
+      y += 7;
+      doc.setFontSize(9);
+      doc.setTextColor("#333333");
+      participants.forEach((p) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(p.name, 14, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${p.role || ""}${p.organisation ? ` — ${p.organisation}` : ""}`, 55, y);
+        y += 5;
+      });
+
+      // Agenda
+      y += 6;
+      doc.setTextColor(navy);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Ordre du jour", 14, y);
+      y += 7;
+      doc.setFontSize(9);
+      doc.setTextColor("#333333");
+      agenda.forEach((item, idx) => {
+        doc.text(`${idx + 1}. ${item}`, 14, y);
+        y += 5;
+      });
+
+      // Conditions
+      y += 6;
+      doc.setTextColor(navy);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Conditions acceptées", 14, y);
+      y += 7;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor("#333333");
+      doc.text("Les deux parties ont validé les conditions de la mission et les paramètres ci-dessus.", 14, y, { maxWidth: pw - 28 });
+
+      // Signatures
+      y += 14;
+      if (y > 230) { doc.addPage(); y = 20; }
+      doc.setTextColor(navy);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Signatures", 14, y);
+      y += 10;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor("#333333");
+      doc.text("L'auditeur", 14, y);
+      if (signatures["auditeur"]) {
+        doc.addImage(signatures["auditeur"], "PNG", 14, y + 4, 70, 25);
+      }
+      doc.setDrawColor(navy);
+      doc.rect(14, y + 4, 70, 25);
+
+      doc.text("L'audité", pw / 2 + 10, y);
+      if (signatures["audite"]) {
+        doc.addImage(signatures["audite"], "PNG", pw / 2 + 10, y + 4, 70, 25);
+      }
+      doc.rect(pw / 2 + 10, y + 4, 70, 25);
+
+      // Footer
+      const pc = doc.getNumberOfPages();
+      for (let i = 1; i <= pc; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor("#999999");
+        doc.text(`AUDIT.IO — Document de mission généré le ${new Date().toLocaleDateString("fr-FR")} — Page ${i}/${pc}`, pw / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
+      }
+
+      doc.save(`Document_Mission_${mission.id}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("Document de mission généré");
+    });
+  };
+
   if (loading) return <div className="text-center py-8 text-muted-foreground">Chargement...</div>;
 
   return (
