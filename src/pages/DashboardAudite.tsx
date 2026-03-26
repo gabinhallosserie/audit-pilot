@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAudits, fetchMissionByAuditId } from "@/lib/supabaseService";
+import { fetchAudits, fetchMissionByAuditId, insertAuditRequest } from "@/lib/supabaseService";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Clock, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ClipboardList, Clock, CheckCircle2, AlertTriangle, ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Audit {
@@ -25,10 +32,23 @@ const statusConfig: Record<string, { label: string; class: string; icon: React.R
   clôturé: { label: "Clôturé", class: "bg-navy text-primary-foreground", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
 };
 
+const AUDIT_TYPES = ["Interne", "Externe", "Certification", "Surveillance"];
+const REFERENTIELS = ["ISO 9001:2015", "ISO 14001:2015", "ISO 50001:2018", "ISO 45001:2018", "CSRD / ESRS"];
+
 const DashboardAudite: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Form state
+  const [auditType, setAuditType] = useState("");
+  const [referentiel, setReferentiel] = useState("");
+  const [perimetre, setPerimetre] = useState("");
+  const [desiredDate, setDesiredDate] = useState("");
+  const [duration, setDuration] = useState("");
+  const [budget, setBudget] = useState("");
 
   useEffect(() => {
     fetchAudits()
@@ -46,6 +66,36 @@ const DashboardAudite: React.FC = () => {
     }
   };
 
+  const handleSubmitRequest = async () => {
+    if (!auditType || !referentiel || !desiredDate || !duration) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+    try {
+      await insertAuditRequest({
+        audit_type: auditType,
+        referentiel,
+        perimetre,
+        desired_date: desiredDate,
+        estimated_duration: duration,
+        budget,
+        requester_email: user?.email || "",
+        requester_name: user?.name || "",
+        company: user?.company || "",
+      });
+      setAuditType("");
+      setReferentiel("");
+      setPerimetre("");
+      setDesiredDate("");
+      setDuration("");
+      setBudget("");
+      setDialogOpen(false);
+      toast.success("Demande d'audit soumise avec succès");
+    } catch {
+      toast.error("Erreur lors de la soumission");
+    }
+  };
+
   const stats = {
     total: audits.length,
     enCours: audits.filter((a) => a.status === "en_cours").length,
@@ -57,9 +107,65 @@ const DashboardAudite: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Tableau de bord — Audité</h1>
-        <p className="text-muted-foreground text-sm mt-1">Vue d'ensemble de vos audits</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-foreground">Tableau de bord — Audité</h1>
+          <p className="text-muted-foreground text-sm mt-1">Vue d'ensemble de vos audits</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
+              <Plus className="w-4 h-4" />
+              Nouvelle demande d'audit
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-display">Nouvelle demande d'audit</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label>Type d'audit *</Label>
+                <Select value={auditType} onValueChange={setAuditType}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>
+                    {AUDIT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Référentiel visé *</Label>
+                <Select value={referentiel} onValueChange={setReferentiel}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>
+                    {REFERENTIELS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Périmètre</Label>
+                <Textarea rows={2} placeholder="Décrivez le périmètre de l'audit..." value={perimetre} onChange={(e) => setPerimetre(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Date souhaitée *</Label>
+                  <Input type="date" value={desiredDate} onChange={(e) => setDesiredDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Durée estimée *</Label>
+                  <Input placeholder="Ex: 2 jours" value={duration} onChange={(e) => setDuration(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Budget indicatif (optionnel)</Label>
+                <Input placeholder="Ex: 5 000 €" value={budget} onChange={(e) => setBudget(e.target.value)} />
+              </div>
+              <Button onClick={handleSubmitRequest} className="w-full bg-navy hover:bg-navy/90 text-primary-foreground">
+                Soumettre la demande
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* KPI Cards */}

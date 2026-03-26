@@ -1,11 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchMissions, fetchAudits } from "@/lib/supabaseService";
+import { fetchMissions, fetchAudits, fetchAuditRequests } from "@/lib/supabaseService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, FileText, ArrowRight, Briefcase, CalendarDays } from "lucide-react";
+import { ClipboardCheck, FileText, ArrowRight, Briefcase, CalendarDays, Inbox } from "lucide-react";
 import { toast } from "sonner";
+
+interface AuditRequest {
+  id: string;
+  audit_type: string;
+  referentiel: string;
+  perimetre: string;
+  desired_date: string;
+  estimated_duration: string;
+  budget: string;
+  status: string;
+  requester_name: string;
+  company: string;
+  created_at: string;
+}
 
 const missionStatusConfig: Record<string, { label: string; class: string }> = {
   préparation: { label: "Préparation", class: "bg-muted text-muted-foreground" },
@@ -17,13 +31,15 @@ const DashboardAuditeur: React.FC = () => {
   const navigate = useNavigate();
   const [missions, setMissions] = useState<any[]>([]);
   const [auditsCount, setAuditsCount] = useState(0);
+  const [requests, setRequests] = useState<AuditRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchMissions(), fetchAudits()])
-      .then(([m, a]) => {
+    Promise.all([fetchMissions(), fetchAudits(), fetchAuditRequests()])
+      .then(([m, a, r]) => {
         setMissions(m);
         setAuditsCount(a.length);
+        setRequests(r as AuditRequest[]);
       })
       .catch(() => toast.error("Erreur de chargement"))
       .finally(() => setLoading(false));
@@ -39,11 +55,12 @@ const DashboardAuditeur: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Missions actives", value: missions.filter((m) => m.status === "en_cours").length, icon: <ClipboardCheck className="w-5 h-5" /> },
           { label: "En préparation", value: missions.filter((m) => m.status === "préparation").length, icon: <FileText className="w-5 h-5" /> },
           { label: "Audits totaux", value: auditsCount, icon: <Briefcase className="w-5 h-5" /> },
+          { label: "Demandes reçues", value: requests.length, icon: <Inbox className="w-5 h-5" /> },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="pt-5 pb-4">
@@ -94,17 +111,49 @@ const DashboardAuditeur: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Demandes */}
+      {/* Demandes d'audit reçues */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-lg">Demandes d'audit reçues</CardTitle>
+          <CardTitle className="font-display text-lg flex items-center gap-2">
+            <Inbox className="w-5 h-5 text-navy" />
+            Demandes d'audit reçues
+            {requests.length > 0 && <Badge className="bg-teal text-primary-foreground text-xs">{requests.length}</Badge>}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="w-10 h-10 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">Aucune nouvelle demande pour le moment</p>
-            <p className="text-xs mt-1">Les demandes de matching apparaîtront ici</p>
-          </div>
+        <CardContent className="p-0">
+          {requests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="w-10 h-10 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">Aucune nouvelle demande pour le moment</p>
+              <p className="text-xs mt-1">Les demandes des audités apparaîtront ici</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {requests.map((req) => (
+                <div key={req.id} className="px-6 py-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <Badge className="bg-navy text-primary-foreground text-xs">{req.audit_type}</Badge>
+                        <Badge variant="outline" className="text-xs">{req.referentiel}</Badge>
+                        <Badge variant="outline" className="text-xs bg-muted">{req.status === "en_attente" ? "En attente" : req.status}</Badge>
+                      </div>
+                      <p className="text-sm font-medium">{req.company} — {req.requester_name}</p>
+                      {req.perimetre && <p className="text-xs text-muted-foreground mt-0.5">{req.perimetre}</p>}
+                      <div className="flex gap-4 text-xs text-muted-foreground mt-1">
+                        <span>Date souhaitée : {new Date(req.desired_date).toLocaleDateString("fr-FR")}</span>
+                        <span>Durée : {req.estimated_duration}</span>
+                        {req.budget && <span>Budget : {req.budget}</span>}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground shrink-0">
+                      {new Date(req.created_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

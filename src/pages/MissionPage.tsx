@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
 import { fetchMission, fetchFindings, fetchChecklist, insertFinding, deleteFinding, updateChecklistItem, updateMissionStatus, createNotification, fetchSignatures } from "@/lib/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 import FindingAttachments from "@/components/mission/FindingAttachments";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,6 +95,24 @@ const MissionPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Realtime subscriptions for live updates
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`mission-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'findings', filter: `mission_id=eq.${id}` }, () => {
+        fetchFindings(id).then((f) => setFindings(f as FindingData[])).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checklist_items', filter: `mission_id=eq.${id}` }, () => {
+        fetchChecklist(id).then((c) => setChecklist(c as ChecklistData[])).catch(() => {});
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'missions', filter: `id=eq.${id}` }, (payload) => {
+        setMission((prev) => prev ? { ...prev, ...(payload.new as any) } : prev);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
   if (!mission) return <div className="text-center py-12">Mission introuvable</div>;
@@ -318,6 +338,19 @@ const MissionPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Live progress bar */}
+      {checklist.length > 0 && (
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium">Avancement checklist</span>
+              <span className="text-xs font-bold text-teal">{Math.round((checkedCount / checklist.length) * 100)}%</span>
+            </div>
+            <Progress value={(checkedCount / checklist.length) * 100} className="h-2" />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="avant_audit">

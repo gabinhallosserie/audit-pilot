@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Star, ClipboardCheck, AlertTriangle, Lock } from "lucide-react";
+import { Plus, Star, ClipboardCheck, AlertTriangle, Lock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { FINDING_LABELS, FINDING_COLORS, type FindingType } from "@/data/mockData";
@@ -195,6 +195,31 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
     toast.success("Notation enregistrée");
   };
 
+  const exportCSV = () => {
+    const headers = ["Constat associé", "Type", "Clause", "Responsable", "Date limite", "Preuve attendue", "Statut"];
+    const rows = actions.map((a) => {
+      const f = findings.find((fi) => fi.id === a.finding_id);
+      return [
+        f?.description || "",
+        f ? FINDING_LABELS[f.type as FindingType] || f.type : "",
+        f?.clause || "",
+        a.responsible,
+        a.deadline ? new Date(a.deadline).toLocaleDateString("fr-FR") : "",
+        a.expected_evidence || "",
+        ACTION_STATUS_CONFIG[a.status]?.label || a.status,
+      ];
+    });
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `actions_correctives_${missionId}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Export CSV téléchargé");
+  };
+
   const bothRated = ratings.length === 2;
   const otherRating = ratings.find((r) => r.rater_role !== user?.role);
   const myRatingData = ratings.find((r) => r.rater_role === user?.role);
@@ -211,7 +236,14 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
               <ClipboardCheck className="w-4 h-4 text-navy" />
               Plan d'actions correctives
             </div>
-            {isAuditeur && ecarts.length > 0 && (
+            <div className="flex gap-2">
+              {actions.length > 0 && (
+                <Button size="sm" variant="outline" className="gap-1 border-navy text-navy" onClick={exportCSV}>
+                  <Download className="w-3 h-3" />
+                  Exporter CSV
+                </Button>
+              )}
+              {isAuditeur && ecarts.length > 0 && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="bg-teal hover:bg-teal/90 text-primary-foreground gap-1">
@@ -260,6 +292,7 @@ const PostAuditTab: React.FC<PostAuditTabProps> = ({ missionId, findings }) => {
                 </DialogContent>
               </Dialog>
             )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
