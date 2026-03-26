@@ -473,6 +473,10 @@ const MissionPage: React.FC = () => {
             <PostAuditTab missionId={mission.id} findings={findings} />
           </TabsContent>
         )}
+
+        <TabsContent value="messagerie">
+          <MessagerieTab missionId={mission.id} />
+        </TabsContent>
       </Tabs>
     </div>
   );
