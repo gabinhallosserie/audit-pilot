@@ -1,8 +1,22 @@
-import React from "react";
-import { MOCK_AUDITS } from "@/data/mockData";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { fetchAudits, fetchMissionByAuditId } from "@/lib/supabaseService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+
+interface Audit {
+  id: string;
+  title: string;
+  referentiel: string;
+  status: string;
+  date: string;
+  auditeur: string;
+  audite: string;
+  company: string;
+  perimetre: string;
+}
 
 const statusConfig: Record<string, { label: string; class: string; icon: React.ReactNode }> = {
   planifié: { label: "Planifié", class: "bg-muted text-muted-foreground", icon: <Clock className="w-3.5 h-3.5" /> },
@@ -12,12 +26,34 @@ const statusConfig: Record<string, { label: string; class: string; icon: React.R
 };
 
 const DashboardAudite: React.FC = () => {
-  const stats = {
-    total: MOCK_AUDITS.length,
-    enCours: MOCK_AUDITS.filter((a) => a.status === "en_cours").length,
-    planifies: MOCK_AUDITS.filter((a) => a.status === "planifié").length,
-    termines: MOCK_AUDITS.filter((a) => ["terminé", "clôturé"].includes(a.status)).length,
+  const navigate = useNavigate();
+  const [audits, setAudits] = useState<Audit[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAudits()
+      .then((data) => setAudits(data as Audit[]))
+      .catch(() => toast.error("Erreur de chargement des audits"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAuditClick = async (audit: Audit) => {
+    const mission = await fetchMissionByAuditId(audit.id);
+    if (mission) {
+      navigate(`/mission/${mission.id}`);
+    } else {
+      toast.info("Aucune mission associée à cet audit");
+    }
   };
+
+  const stats = {
+    total: audits.length,
+    enCours: audits.filter((a) => a.status === "en_cours").length,
+    planifies: audits.filter((a) => a.status === "planifié").length,
+    termines: audits.filter((a) => ["terminé", "clôturé"].includes(a.status)).length,
+  };
+
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Chargement...</div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -53,10 +89,14 @@ const DashboardAudite: React.FC = () => {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
-            {MOCK_AUDITS.map((audit) => {
-              const sc = statusConfig[audit.status];
+            {audits.map((audit) => {
+              const sc = statusConfig[audit.status] || statusConfig.planifié;
               return (
-                <div key={audit.id} className="px-6 py-4 hover:bg-muted/50 transition-colors">
+                <div
+                  key={audit.id}
+                  className="px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer group"
+                  onClick={() => handleAuditClick(audit)}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -69,10 +109,13 @@ const DashboardAudite: React.FC = () => {
                       <h3 className="font-semibold text-sm">{audit.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{audit.perimetre}</p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-medium">{audit.referentiel}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(audit.date).toLocaleDateString("fr-FR")}</p>
-                      <p className="text-xs text-muted-foreground">Auditeur : {audit.auditeur}</p>
+                    <div className="text-right shrink-0 flex items-center gap-3">
+                      <div>
+                        <p className="text-xs font-medium">{audit.referentiel}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(audit.date).toLocaleDateString("fr-FR")}</p>
+                        <p className="text-xs text-muted-foreground">Auditeur : {audit.auditeur}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </div>
                 </div>
