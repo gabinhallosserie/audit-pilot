@@ -51,11 +51,11 @@ const LoginPage: React.FC = () => {
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Adresse mail ou identifiant</Label>
+                <Label htmlFor="email">Adresse email</Label>
                 <Input
                   id="email"
-                  type="text"
-                  placeholder="votre@email.com ou identifiant"
+                  type="email"
+                  placeholder="votre@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-11"
@@ -130,6 +130,9 @@ const LoginPage: React.FC = () => {
           </button>
         </div>
 
+        <p className="text-center text-primary-foreground/40 text-xs mt-4">
+          POC Phase 1 — Données de démonstration
+        </p>
       </div>
     </div>
   );
