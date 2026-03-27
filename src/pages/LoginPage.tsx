@@ -130,9 +130,6 @@ const LoginPage: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-center text-primary-foreground/40 text-xs mt-4">
-          POC Phase 1 — Données de démonstration
-        </p>
       </div>
     </div>
   );
