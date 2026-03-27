@@ -152,7 +152,7 @@ const AppLayout: React.FC = () => {
             <Outlet />
           </main>
           <footer className="border-t px-6 py-3 text-center text-xs text-muted-foreground">
-            AUDIT.IO © 2026 — Plateforme SaaS de gestion d'audits · Phase 1 POC
+            AUDIT.IO © 2026 — Plateforme SaaS de gestion d'audits
           </footer>
         </div>
       </div>
